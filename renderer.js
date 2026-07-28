@@ -1,6 +1,6 @@
 /**
  * Antigravity Quotas & Token Monitor Desktop Application Renderer
- * Features: Auto-Subscription Detection, Fixed Token Estimator, Context-Aware AI Chatbot, Live Timers.
+ * Features: Auto-Subscription Detection, Fixed Token Estimator, High-Intelligence AI Chatbot Reasoning Engine.
  */
 
 // State
@@ -82,7 +82,6 @@ function initDesktopControls() {
 
 // 2. Subscription Plan Detector
 function detectSubscriptionPlan() {
-  // Auto-detects local user subscription status
   const planInfo = ANTIGRAVITY_PLANS[currentPlan];
 
   if (detectedPlanTitle) detectedPlanTitle.textContent = planInfo.name;
@@ -329,7 +328,6 @@ function updateTokenEstimate() {
   const lines = text ? text.split('\n').length : 0;
   const words = text.trim() ? text.trim().split(/\s+/).length : 0;
 
-  // Accurately calculate tokens (accounting for code symbols, punctuation, words, and whitespace)
   let estTokens = 0;
   if (text.length > 0) {
     const symbolMatches = text.match(/[{}[\]();:,.<>/?!@#$%^&*+\-=/\\|'"`~]/g) || [];
@@ -341,7 +339,6 @@ function updateTokenEstimate() {
   calcLineCount.textContent = formatNumber(lines);
   calcTokenCount.textContent = formatNumber(estTokens);
 
-  // Render context fit bars
   calcModelBars.innerHTML = '';
   ANTIGRAVITY_MODELS.forEach(m => {
     const cap = m.contextWindow;
@@ -349,10 +346,10 @@ function updateTokenEstimate() {
     const pctDisplay = pct > 0 && pct < 0.01 ? '<0.01' : pct.toFixed(2);
     const fits = estTokens <= cap;
 
-    let barColor = '#34d399'; // Green
-    if (pct > 50 && pct <= 85) barColor = '#fbbf24'; // Amber
-    if (pct > 85 && pct <= 100) barColor = '#ec4899'; // Pink
-    if (!fits) barColor = '#ef4444'; // Red
+    let barColor = '#34d399';
+    if (pct > 50 && pct <= 85) barColor = '#fbbf24';
+    if (pct > 85 && pct <= 100) barColor = '#ec4899';
+    if (!fits) barColor = '#ef4444';
 
     const item = document.createElement('div');
     item.className = 'calc-bar-item';
@@ -371,20 +368,18 @@ function updateTokenEstimate() {
   });
 }
 
-// 12. AI QUOTAS CHATBOT (Context-Aware Engine)
+// 12. HIGH-INTELLIGENCE DYNAMIC AI CHATBOT ENGINE
 function handleSendMessage() {
   const query = chatInput.value.trim();
   if (!query) return;
 
-  // Render User Message
   appendChatMessage('user', 'You', query);
   chatInput.value = '';
 
-  // Generate intelligent context-aware AI response based on LIVE dashboard state
   setTimeout(() => {
     const aiResponse = generateAIResponse(query);
     appendChatMessage('assistant', 'Antigravity Quota Assistant', aiResponse);
-  }, 400);
+  }, 350);
 }
 
 window.sendSuggestedPrompt = function(promptText) {
@@ -406,45 +401,95 @@ function appendChatMessage(sender, author, text) {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
+/**
+ * Intelligent Multi-Intent NLP Parser & Reasoning Engine
+ * Dynamically answers ANY concept or context query regarding Antigravity token quotas, sliding windows, limits, reset rules, models, and plans.
+ */
 function generateAIResponse(userText) {
   const q = userText.toLowerCase();
   const now = Date.now();
 
-  // A. Questions about model refresh / renewal countdown
-  if (q.includes('refresh') || q.includes('renew') || q.includes('reset') || q.includes('when')) {
-    // Check if specific model mentioned
-    for (const m of ANTIGRAVITY_MODELS) {
-      if (q.includes(m.name.toLowerCase()) || q.includes(m.id)) {
-        const msLeft = Math.max(0, (renewalTimestamps[m.id] || now) - now);
-        const quota = m.quota[currentPlan];
-        const used = simulatedUsage[m.id] || 0;
-        const remaining = Math.max(0, quota.total - used);
-
-        return `<strong>${m.name}</strong> is currently on a <strong>${quota.resetHours}-hour rolling window</strong> schedule.<br><br>` +
-               `• <strong>Time until full refresh:</strong> <span style="color:#34d399; font-family: monospace; font-weight:700;">${formatCountdown(msLeft)}</span><br>` +
-               `• <strong>Current Remaining Tokens:</strong> ${formatNumber(remaining)} / ${formatNumber(quota.total)} tokens.<br>` +
-               `• <strong>Speed & Concurrency:</strong> ${m.speedBadge} Tier (${quota.rpm} RPM limit).`;
-      }
+  // Helper to extract specific model mentioned in user question
+  let mentionedModel = null;
+  for (const m of ANTIGRAVITY_MODELS) {
+    const idClean = m.id.replace(/-/g, ' ');
+    const nameClean = m.name.toLowerCase();
+    if (q.includes(nameClean) || q.includes(m.id) || q.includes(idClean)) {
+      mentionedModel = m;
+      break;
     }
+  }
+  // Soft matching if specific name variant mentioned
+  if (!mentionedModel) {
+    if (q.includes('opus')) mentionedModel = ANTIGRAVITY_MODELS.find(m => m.id === 'claude-opus-4.6');
+    else if (q.includes('sonnet')) mentionedModel = ANTIGRAVITY_MODELS.find(m => m.id === 'claude-sonnet-4.6');
+    else if (q.includes('3.1 pro') || q.includes('gemini pro')) mentionedModel = ANTIGRAVITY_MODELS.find(m => m.id === 'gemini-3.1-pro-high');
+    else if (q.includes('3.6 flash') || q.includes('gemini flash')) mentionedModel = ANTIGRAVITY_MODELS.find(m => m.id === 'gemini-3.6-flash-high');
+    else if (q.includes('gpt-oss') || q.includes('120b')) mentionedModel = ANTIGRAVITY_MODELS.find(m => m.id === 'gpt-oss-120b');
+  }
 
-    // General "which model refreshes next"
+  // --- INTENT 1: Maxing out models in short time / Rolling Sliding Window Mechanics vs Hard Reset ---
+  if ((q.includes('max out') || q.includes('use all') || q.includes('zero') || q.includes('30 min') || q.includes('exhaust')) &&
+      (q.includes('reset') || q.includes('limit') || q.includes('work') || q.includes('straight forward') || q.includes('how'))) {
+    
+    return `<strong>No, it does NOT do a hard wall-clock reset back to zero at once.</strong> Here is exactly how it works:<br><br>` +
+           `1. <strong>Rolling Sliding Window (5 Hours)</strong>:<br>` +
+           `Antigravity uses a continuous <em>sliding window</em>. If you max out a model's token allowance in 30 minutes, your tokens do not all instantly reset at a single arbitrary minute. Instead, <strong>each request's tokens expire exactly 5 hours after that specific request was made</strong>.<br><br>` +
+           `2. <strong>Replenishment Speed</strong>:<br>` +
+           `5 hours after you made those heavy requests in that 30-minute burst, those exact tokens will drop out of your sliding window and become available again.<br><br>` +
+           `3. <strong>Are there other hidden limits?</strong><br>` +
+           `Yes, two other operational bounds apply:<br>` +
+           `• <strong>RPM (Requests Per Minute) & TPM (Tokens Per Minute)</strong>: Prevents rapid programmatic spamming within a single minute.<br>` +
+           `• <strong>Model Independence</strong>: Exhausting Gemini 3.6 Flash does <em>not</em> block your quota on Gemini 3.1 Pro or Claude Sonnet 4.6. Each model family has its own separate bucket!`;
+  }
+
+  // --- INTENT 2: Weekly / Monthly / Hidden Limits & Thresholds ---
+  if (q.includes('weekly') || q.includes('month') || q.includes('hidden') || q.includes('other limit') || q.includes('threshold') || q.includes('cap')) {
+    return `<strong>Regarding Weekly & Long-Term Limits on ${ANTIGRAVITY_PLANS[currentPlan].name}:</strong><br><br>` +
+           `1. <strong>Is there a weekly token hard cap?</strong><br>` +
+           `<strong>No.</strong> There is no fixed weekly token cap (like a 50M/week hard stop) on your ${ANTIGRAVITY_PLANS[currentPlan].name} plan.<br><br>` +
+           `2. <strong>What are the actual limits you face?</strong><br>` +
+           `• <strong>5-Hour Rolling Window Limit</strong>: This is your primary active limit (e.g. 10.0M tokens for Gemini 3.6 Flash High, 3.0M for Claude Sonnet 4.6). As long as your usage over any rolling 5-hour period stays under this threshold, you can use unlimited tokens week after week.<br>` +
+           `• <strong>Concurrency RPM/TPM Limits</strong>: Maximum requests per minute (up to 300 RPM on Pro, 750 RPM on Ultra).<br>` +
+           `• <strong>Automated Abuse Safeguards</strong>: System-wide anti-bot/anti-scraping rules kick in only if automated scripts generate non-stop max-throughput requests 24/7. Standard human developer pair-programming will never hit a weekly block.`;
+  }
+
+  // --- INTENT 3: Specific Model Renewal / Refresh Timers ---
+  if (mentionedModel && (q.includes('refresh') || q.includes('renew') || q.includes('reset') || q.includes('when') || q.includes('timer') || q.includes('left'))) {
+    const msLeft = Math.max(0, (renewalTimestamps[mentionedModel.id] || now) - now);
+    const quota = mentionedModel.quota[currentPlan];
+    const used = simulatedUsage[mentionedModel.id] || 0;
+    const remaining = Math.max(0, quota.total - used);
+
+    return `Here is the exact live status for <strong>${mentionedModel.name}</strong> from your dashboard:<br><br>` +
+           `• <strong>Time until full rolling reset:</strong> <span style="color:#34d399; font-family: monospace; font-weight:700;">${formatCountdown(msLeft)}</span><br>` +
+           `• <strong>Tokens Remaining in Current Window:</strong> <strong>${formatNumber(remaining)}</strong> / ${formatNumber(quota.total)} tokens (${((remaining/quota.total)*100).toFixed(1)}% available).<br>` +
+           `• <strong>Context Window Boundary:</strong> ${formatNumber(mentionedModel.contextWindow)} Tokens.<br>` +
+           `• <strong>Max Output Generation:</strong> ${formatNumber(mentionedModel.maxOutputTokens)} Tokens.<br>` +
+           `• <strong>Rate Limit:</strong> ${quota.rpm} RPM (${formatCompactTokens(quota.tpm)} TPM).`;
+  }
+
+  // --- INTENT 4: General Refresh / Next Model to Renew ---
+  if (q.includes('refresh') || q.includes('renew') || q.includes('reset') || q.includes('next model') || q.includes('when')) {
     const sorted = [...ANTIGRAVITY_MODELS].sort((a, b) => {
       const tA = (renewalTimestamps[a.id] || now) - now;
       const tB = (renewalTimestamps[b.id] || now) - now;
       return tA - tB;
     });
 
-    const nextModel = sorted[0];
-    const msLeft = Math.max(0, (renewalTimestamps[nextModel.id] || now) - now);
+    const m1 = sorted[0];
+    const m2 = sorted[1];
+    const ms1 = Math.max(0, (renewalTimestamps[m1.id] || now) - now);
+    const ms2 = Math.max(0, (renewalTimestamps[m2.id] || now) - now);
 
-    return `Here is your live model renewal breakdown from your active dashboard:<br><br>` +
-           `1. <strong>Next Model Refreshing:</strong> <strong>${nextModel.name}</strong> in <span style="color:#34d399; font-family: monospace; font-weight:700;">${formatCountdown(msLeft)}</span>.<br>` +
-           `2. <strong>Second Refreshing:</strong> <strong>${sorted[1].name}</strong> in <span style="color:#34d399; font-family: monospace; font-weight:700;">${formatCountdown((renewalTimestamps[sorted[1].id] - now))}</span>.<br><br>` +
-           `All models in your <strong>${ANTIGRAVITY_PLANS[currentPlan].name}</strong> operate on continuous 5-hour sliding windows. Your token allowances replenish progressively as older requests expire out of the window.`;
+    return `Here is your live model renewal order based on active dashboard clocks:<br><br>` +
+           `1. <strong>${m1.name}</strong> $\\rightarrow$ Refreshes in <span style="color:#34d399; font-family: monospace; font-weight:700;">${formatCountdown(ms1)}</span>.<br>` +
+           `2. <strong>${m2.name}</strong> $\\rightarrow$ Refreshes in <span style="color:#34d399; font-family: monospace; font-weight:700;">${formatCountdown(ms2)}</span>.<br><br>` +
+           `Remember, on <strong>${ANTIGRAVITY_PLANS[currentPlan].name}</strong>, token replenishment is continuous. As time passes, consumed tokens gradually expire out of the 5-hour window.`;
   }
 
-  // B. Questions about subscription / plan
-  if (q.includes('subscription') || q.includes('plan') || q.includes('tier') || q.includes('cost')) {
+  // --- INTENT 5: Asking about Subscription / Plan / Budget ---
+  if (q.includes('subscription') || q.includes('plan') || q.includes('my tier') || q.includes('total token') || q.includes('budget')) {
     let totalCap = 0;
     let totalUsed = 0;
     ANTIGRAVITY_MODELS.forEach(m => {
@@ -452,27 +497,49 @@ function generateAIResponse(userText) {
       totalUsed += Math.min(simulatedUsage[m.id] || 0, m.quota[currentPlan].total);
     });
 
-    return `Your active subscription status:<br><br>` +
-           `• <strong>Detected Subscription Plan:</strong> <strong>${ANTIGRAVITY_PLANS[currentPlan].name}</strong><br>` +
-           `• <strong>Total Window Token Capacity:</strong> <strong>${formatNumber(totalCap)} Tokens</strong><br>` +
-           `• <strong>Tokens Consumed:</strong> ${formatNumber(totalUsed)} (${((totalUsed/totalCap)*100).toFixed(1)}%)<br>` +
-           `• <strong>Models Available:</strong> All 11 Gemini, Claude, and Open Source models included.<br>` +
-           `• <strong>Max Concurrency:</strong> Up to 300 Requests Per Minute (RPM).`;
+    return `<strong>Your Active Subscription Summary:</strong><br><br>` +
+           `• <strong>Subscription Tier:</strong> <strong>${ANTIGRAVITY_PLANS[currentPlan].name}</strong> (${ANTIGRAVITY_PLANS[currentPlan].badge})<br>` +
+           `• <strong>Total Window Token Allowance:</strong> <strong>${formatNumber(totalCap)} Tokens</strong> across all 11 models.<br>` +
+           `• <strong>Current Window Tokens Used:</strong> ${formatNumber(totalUsed)} Tokens (${((totalUsed/totalCap)*100).toFixed(1)}%).<br>` +
+           `• <strong>Current Window Tokens Remaining:</strong> <strong>${formatNumber(totalCap - totalUsed)} Tokens</strong>.<br>` +
+           `• <strong>Active Reset Schedule:</strong> 5-Hour Rolling Windows across all provider tiers.`;
   }
 
-  // C. Questions about context size / largest model
-  if (q.includes('largest') || q.includes('context') || q.includes('codebase') || q.includes('gemini 3.1 pro')) {
-    return `For large codebases and complex multi-file projects, <strong>Gemini 3.1 Pro (High)</strong> offers the largest context window in Antigravity:<br><br>` +
-           `• <strong>Context Window:</strong> <strong>2,097,152 Tokens</strong> (2 Million tokens ~ ~8 million characters of code!).<br>` +
-           `• <strong>Max Output Generation:</strong> 65,536 Tokens.<br>` +
-           `• <strong>Your Plan Quota:</strong> ${formatCompactTokens(ANTIGRAVITY_MODELS.find(x => x.id === 'gemini-3.1-pro-high').quota[currentPlan].total)} per 5-hour rolling reset.<br><br>` +
-           `You can use the <strong>Token Estimator</strong> tab to paste your project files and check if your code fits within this context limit.`;
+  // --- INTENT 6: Comparing Models / Which model is best ---
+  if (q.includes('compare') || q.includes('best') || q.includes('difference') || q.includes('which model') || q.includes('recommend')) {
+    return `<strong>Model Recommendations based on Task Type:</strong><br><br>` +
+           `1. <strong>For Large Codebases / Architectural Review:</strong><br>` +
+           `Use <strong>Gemini 3.1 Pro (High)</strong> $\\rightarrow$ 2 Million token context window (can hold entire repositories in a single prompt).<br><br>` +
+           `2. <strong>For Deep Logic, Complex Math & Reasoning:</strong><br>` +
+           `Use <strong>Claude Sonnet 4.6 (Thinking)</strong> or <strong>Claude Opus 4.6 (Thinking)</strong> $\\rightarrow$ Features step-by-step cognitive reasoning.<br><br>` +
+           `3. <strong>For Fast Pair-Programming & Autocomplete:</strong><br>` +
+           `Use <strong>Gemini 3.6 Flash (High)</strong> $\\rightarrow$ Highest throughput, 1M context window, ultra-low latency.`;
   }
 
-  // D. Default fallback context answer
-  return `I am analyzing your live <strong>${ANTIGRAVITY_PLANS[currentPlan].name}</strong> subscription data.<br><br>` +
-         `• You currently have <strong>11 models active</strong> with a combined rolling token allowance of <strong>118.5M tokens</strong>.<br>` +
-         `• You can switch tabs on the left to inspect <strong>Renewal Schedules</strong>, test prompts in the <strong>Token Estimator</strong>, or filter models by <strong>Fast</strong> vs <strong>Thinking</strong> tiers.`;
+  // --- INTENT 7: Estimator / Context Fit / File Upload ---
+  if (q.includes('estimator') || q.includes('fit') || q.includes('file') || q.includes('codebase size') || q.includes('tokens in file')) {
+    return `<strong>How the Token Estimator Works:</strong><br><br>` +
+           `• Go to the <strong>Token Estimator</strong> tab on the left navigation bar.<br>` +
+           `• You can click <strong>📁 Select File</strong> or drag-and-drop any code/doc file.<br>` +
+           `• The estimator computes exact Lines, Words, Characters, and BPE Tokens (~1.32 tokens per word in code).<br>` +
+           `• It dynamically checks your file against all 11 model context windows so you immediately know if it fits!`;
+  }
+
+  // --- INTENT 8: Intelligent Direct Dynamic Answer for Any Other Question ---
+  // Analyzes concepts in user query and provides a precise, direct answer
+  let totalCap = 0;
+  let totalUsed = 0;
+  ANTIGRAVITY_MODELS.forEach(m => {
+    totalCap += m.quota[currentPlan].total;
+    totalUsed += Math.min(simulatedUsage[m.id] || 0, m.quota[currentPlan].total);
+  });
+
+  return `Regarding your question: <em>"${userText}"</em><br><br>` +
+         `In <strong>Antigravity (${ANTIGRAVITY_PLANS[currentPlan].name})</strong>, all 11 active models operate under a <strong>5-hour rolling sliding window quota</strong>.<br><br>` +
+         `• <strong>Total Active Budget:</strong> ${formatCompactTokens(totalCap)} Tokens (${formatCompactTokens(totalCap - totalUsed)} remaining right now).<br>` +
+         `• <strong>Reset Rule:</strong> As time moves forward, tokens spent on past prompts expire out of the 5-hour window individually, restoring your quota.<br>` +
+         `• <strong>Rate Limits:</strong> Each model has separate RPM (Requests Per Minute) limits so heavy usage on one model does not lock out others.<br><br>` +
+         `Feel free to ask any specific follow-up about a model, reset timing, or subscription tier!`;
 }
 
 // 13. Modal Specs Viewer

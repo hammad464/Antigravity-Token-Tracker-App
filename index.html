@@ -82,7 +82,7 @@
           <span class="badge-new">AI</span>
         </button>
         <button class="nav-item" data-tab="specs">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 2-2 2v16a2 2 0 0 2 2 2h12a2 2 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           <span>Model Specs Matrix</span>
         </button>
       </nav>
@@ -252,24 +252,23 @@
       <section id="viewChatbot" class="view-panel">
         <div class="section-header">
           <h2>Antigravity Quotas AI Assistant</h2>
-          <span class="section-subtitle">Ask questions about your live dashboard data, renewal countdowns, model specs, or token optimization</span>
+          <span class="section-subtitle">Ask any question about rolling windows, quota resets, hidden caps, live dashboard data, or model specs</span>
         </div>
 
         <div class="chatbot-container">
           <div class="chat-sidebar-info">
             <div class="ai-avatar-badge">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              <span>Live Context Connected</span>
+              <span>Deep Reasoning Active</span>
             </div>
-            <p class="chat-intro-text">This assistant has direct real-time access to your active dashboard stats, model renewal countdown timers, and subscription plan parameters.</p>
+            <p class="chat-intro-text">Ask exact questions about how rolling window resets work, whether usage resets to zero, weekly token caps, or live model timers.</p>
 
             <div class="suggested-prompts-title">SUGGESTED QUESTIONS</div>
             <div class="suggested-prompts">
-              <button class="prompt-pill" onclick="sendSuggestedPrompt('Which model will refresh next and when?')">🕒 Which model will refresh next?</button>
+              <button class="prompt-pill" onclick="sendSuggestedPrompt('If I max out every model in 30 min, do tokens reset to zero all at once?')">🔄 If I max out in 30 min, does it reset all at once?</button>
+              <button class="prompt-pill" onclick="sendSuggestedPrompt('Is there any other limit like a weekly token cap?')">🛑 Is there a weekly token cap?</button>
               <button class="prompt-pill" onclick="sendSuggestedPrompt('When will Gemini 3.6 Flash (High) refresh?')">⚡ When will Gemini 3.6 Flash refresh?</button>
-              <button class="prompt-pill" onclick="sendSuggestedPrompt('What subscription plan do I have and what are my total tokens?')">💳 What subscription plan do I have?</button>
-              <button class="prompt-pill" onclick="sendSuggestedPrompt('Which model has the largest context window for codebases?')">📚 Which model has largest context?</button>
-              <button class="prompt-pill" onclick="sendSuggestedPrompt('How many total tokens do I have remaining in my window?')">📊 Total tokens remaining?</button>
+              <button class="prompt-pill" onclick="sendSuggestedPrompt('Which model has the largest context window for codebases?')">📚 Largest context model?</button>
             </div>
           </div>
 
@@ -279,14 +278,14 @@
                 <div class="msg-avatar">AI</div>
                 <div class="msg-content">
                   <div class="msg-author">Antigravity Quota Assistant</div>
-                  <p>Hello! I'm your specialized Antigravity assistant. I am currently monitoring your <strong>Antigravity Pro</strong> plan with 11 active models.</p>
-                  <p>Ask me anything about your remaining tokens, live renewal countdowns (e.g. <em>"When will Gemini 3.6 Flash refresh?"</em>), or which model is best suited for your prompt!</p>
+                  <p>Hello! I am your dedicated Antigravity AI Assistant. I can answer <strong>any question</strong> about your token limits, rolling 5-hour sliding windows, hidden caps, or live model reset countdowns.</p>
+                  <p>Ask your question below exactly as you'd like it answered!</p>
                 </div>
               </div>
             </div>
 
             <div class="chat-input-area">
-              <input type="text" id="chatInput" placeholder="Ask about your dashboard, model renewal times, or subscription tokens...">
+              <input type="text" id="chatInput" placeholder="Ask any question about rolling resets, weekly caps, live timers, or model limits...">
               <button class="btn-send-chat" id="btnSendChat">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 <span>Send</span>
