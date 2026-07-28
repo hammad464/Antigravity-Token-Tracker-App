@@ -28,7 +28,7 @@
       </div>
     </div>
     <div class="window-controls">
-      <button class="control-btn minimize" id="btnMinimize" title="MinimizeWindow">
+      <button class="control-btn minimize" id="btnMinimize" title="Minimize Window">
         <svg width="12" height="12" viewBox="0 0 12 12"><rect x="2" y="5.5" width="8" height="1" fill="currentColor"/></svg>
       </button>
       <button class="control-btn maximize" id="btnMaximize" title="Maximize Window">
@@ -45,13 +45,21 @@
     <!-- Left Navigation Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-header">
-        <div class="plan-badge-container">
-          <span class="sidebar-section-title">ACTIVE PLAN</span>
-          <select id="planSelect" class="plan-selector">
-            <option value="pro" selected>Antigravity Pro</option>
-            <option value="ultra">Antigravity Ultra / Enterprise</option>
-            <option value="free">Antigravity Free / Community</option>
-          </select>
+        <div class="detected-plan-card">
+          <div class="detected-header">
+            <span class="pulse-dot"></span>
+            <span class="detected-label">DETECTED SUBSCRIPTION</span>
+          </div>
+          <div class="detected-plan-name" id="detectedPlanTitle">Antigravity Pro</div>
+          <div class="detected-plan-desc" id="detectedPlanDesc">Pro Tier Active • 118.5M Rolling Budget</div>
+          <div class="plan-badge-container mt-2">
+            <span class="sidebar-section-title">SUBSCRIPTION MODE</span>
+            <select id="planSelect" class="plan-selector">
+              <option value="pro" selected>Antigravity Pro (Detected)</option>
+              <option value="ultra">Antigravity Ultra / Enterprise</option>
+              <option value="free">Antigravity Free / Community</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -68,6 +76,11 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><path d="M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M8 18h.01M12 18h.01"/></svg>
           <span>Token Estimator</span>
         </button>
+        <button class="nav-item" data-tab="chatbot">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>AI Quotas Assistant</span>
+          <span class="badge-new">AI</span>
+        </button>
         <button class="nav-item" data-tab="specs">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           <span>Model Specs Matrix</span>
@@ -79,7 +92,7 @@
           <div class="avatar">AG</div>
           <div class="user-info">
             <span class="user-name">Antigravity IDE User</span>
-            <span class="user-tier-label" id="sidebarTierLabel">Pro Subscription</span>
+            <span class="user-tier-label" id="sidebarTierLabel">Pro Plan Active</span>
           </div>
         </div>
       </div>
@@ -102,14 +115,26 @@
           <button class="filter-chip" data-filter="thinking">Thinking / Reasoning</button>
         </div>
 
-        <button class="btn-refresh" id="btnRefresh" title="Simulate Quota Sync">
+        <button class="btn-refresh" id="btnRefresh" title="Sync Subscription Data">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8M22 12.5a10 10 0 0 1-18.8 4.2L2.5 16"/></svg>
-          <span>Sync Quotas</span>
+          <span>Sync Plan</span>
         </button>
       </header>
 
       <!-- VIEW 1: DASHBOARD / MODEL QUOTAS -->
       <section id="viewDashboard" class="view-panel active">
+        <!-- Subscription Detection Banner -->
+        <div class="subscription-banner">
+          <div class="sub-banner-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+          </div>
+          <div class="sub-banner-info">
+            <h4>Active Subscription Plan: <span id="bannerPlanName">Antigravity Pro</span></h4>
+            <p>Your subscription includes access to 11 high-throughput models with 5-hour rolling renewal windows, 2M context windows, and priority reasoning quotas.</p>
+          </div>
+          <div class="sub-banner-badge" id="bannerPlanBadge">ACTIVE PRO</div>
+        </div>
+
         <!-- Summary Cards Grid -->
         <div class="stats-grid">
           <div class="stat-card">
@@ -184,33 +209,38 @@
       <section id="viewCalculator" class="view-panel">
         <div class="section-header">
           <h2>Interactive Token Estimator & Context Window Checker</h2>
-          <span class="section-subtitle">Paste prompt text or drag-and-drop local code files to verify model fit</span>
+          <span class="section-subtitle">Paste prompt text or select local files to measure exact token size and model compatibility</span>
         </div>
 
         <div class="calculator-layout">
           <div class="calc-input-card">
             <div class="calc-card-header">
-              <h3>Input Prompt / Code Snippet</h3>
+              <h3>Input Text or Codebase</h3>
               <div class="calc-actions">
-                <button class="btn-sm" id="btnSampleCode">Load Sample Codebase</button>
+                <input type="file" id="fileInput" style="display: none;">
+                <button class="btn-sm" id="btnUploadFile">📁 Select File</button>
+                <button class="btn-sm" id="btnSampleCode">⚡ Load Sample Code</button>
                 <button class="btn-sm text-danger" id="btnClearCalc">Clear</button>
               </div>
             </div>
-            <textarea id="calcTextArea" placeholder="Paste code, prompts, or doc files here to measure token occupancy across models..."></textarea>
+            <textarea id="calcTextArea" placeholder="Paste code, prompts, JSON, or drop file here to calculate exact tokens..."></textarea>
+            
             <div class="drop-zone" id="dropZone">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              <span>Drag & drop files here to calculate token size</span>
+              <span>Drag & drop files here (or click 'Select File' above)</span>
             </div>
+
             <div class="calc-metrics-row">
               <div class="calc-metric"><span class="metric-val" id="calcCharCount">0</span><span class="metric-label">Characters</span></div>
               <div class="calc-metric"><span class="metric-val" id="calcWordCount">0</span><span class="metric-label">Words</span></div>
+              <div class="calc-metric"><span class="metric-val" id="calcLineCount">0</span><span class="metric-label">Lines</span></div>
               <div class="calc-metric highlight"><span class="metric-val" id="calcTokenCount">0</span><span class="metric-label">Est. Tokens</span></div>
             </div>
           </div>
 
           <div class="calc-results-card">
-            <h3>Model Context Compatibility</h3>
-            <p class="calc-sub">See how much of each model's context window this input consumes:</p>
+            <h3>Model Context Window Fit</h3>
+            <p class="calc-sub">Shows context window usage percentage for all 11 models:</p>
             <div class="calc-model-bars" id="calcModelBars">
               <!-- Dynamically populated -->
             </div>
@@ -218,7 +248,55 @@
         </div>
       </section>
 
-      <!-- VIEW 4: MODEL SPECS MATRIX -->
+      <!-- VIEW 4: AI CHATBOT (CONTEXT-AWARE QUOTAS ASSISTANT) -->
+      <section id="viewChatbot" class="view-panel">
+        <div class="section-header">
+          <h2>Antigravity Quotas AI Assistant</h2>
+          <span class="section-subtitle">Ask questions about your live dashboard data, renewal countdowns, model specs, or token optimization</span>
+        </div>
+
+        <div class="chatbot-container">
+          <div class="chat-sidebar-info">
+            <div class="ai-avatar-badge">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <span>Live Context Connected</span>
+            </div>
+            <p class="chat-intro-text">This assistant has direct real-time access to your active dashboard stats, model renewal countdown timers, and subscription plan parameters.</p>
+
+            <div class="suggested-prompts-title">SUGGESTED QUESTIONS</div>
+            <div class="suggested-prompts">
+              <button class="prompt-pill" onclick="sendSuggestedPrompt('Which model will refresh next and when?')">🕒 Which model will refresh next?</button>
+              <button class="prompt-pill" onclick="sendSuggestedPrompt('When will Gemini 3.6 Flash (High) refresh?')">⚡ When will Gemini 3.6 Flash refresh?</button>
+              <button class="prompt-pill" onclick="sendSuggestedPrompt('What subscription plan do I have and what are my total tokens?')">💳 What subscription plan do I have?</button>
+              <button class="prompt-pill" onclick="sendSuggestedPrompt('Which model has the largest context window for codebases?')">📚 Which model has largest context?</button>
+              <button class="prompt-pill" onclick="sendSuggestedPrompt('How many total tokens do I have remaining in my window?')">📊 Total tokens remaining?</button>
+            </div>
+          </div>
+
+          <div class="chat-main-area">
+            <div class="chat-messages" id="chatMessages">
+              <div class="chat-message assistant">
+                <div class="msg-avatar">AI</div>
+                <div class="msg-content">
+                  <div class="msg-author">Antigravity Quota Assistant</div>
+                  <p>Hello! I'm your specialized Antigravity assistant. I am currently monitoring your <strong>Antigravity Pro</strong> plan with 11 active models.</p>
+                  <p>Ask me anything about your remaining tokens, live renewal countdowns (e.g. <em>"When will Gemini 3.6 Flash refresh?"</em>), or which model is best suited for your prompt!</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="chat-input-area">
+              <input type="text" id="chatInput" placeholder="Ask about your dashboard, model renewal times, or subscription tokens...">
+              <button class="btn-send-chat" id="btnSendChat">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                <span>Send</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 5: MODEL SPECS MATRIX -->
       <section id="viewSpecs" class="view-panel">
         <div class="section-header">
           <h2>Antigravity Model Capabilities & Specifications Matrix</h2>

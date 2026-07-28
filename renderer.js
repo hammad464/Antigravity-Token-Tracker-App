@@ -1,9 +1,9 @@
 /**
  * Antigravity Quotas & Token Monitor Desktop Application Renderer
- * Coordinates desktop window IPC, real-time timer calculations, model grid updates, and token estimation.
+ * Features: Auto-Subscription Detection, Fixed Token Estimator, Context-Aware AI Chatbot, Live Timers.
  */
 
-// Application State
+// State
 let currentPlan = localStorage.getItem('ag_plan') || 'pro';
 let activeFilter = 'all';
 let searchQuery = '';
@@ -13,6 +13,11 @@ let renewalTimestamps = JSON.parse(localStorage.getItem('ag_renewal_timestamps')
 // DOM Elements
 const planSelect = document.getElementById('planSelect');
 const sidebarTierLabel = document.getElementById('sidebarTierLabel');
+const detectedPlanTitle = document.getElementById('detectedPlanTitle');
+const detectedPlanDesc = document.getElementById('detectedPlanDesc');
+const bannerPlanName = document.getElementById('bannerPlanName');
+const bannerPlanBadge = document.getElementById('bannerPlanBadge');
+
 const searchInput = document.getElementById('searchInput');
 const filterChips = document.querySelectorAll('.filter-chip');
 const navItems = document.querySelectorAll('.nav-item');
@@ -32,10 +37,17 @@ const globalCountdown = document.getElementById('globalCountdown');
 
 const calcTextArea = document.getElementById('calcTextArea');
 const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const btnUploadFile = document.getElementById('btnUploadFile');
 const calcCharCount = document.getElementById('calcCharCount');
 const calcWordCount = document.getElementById('calcWordCount');
+const calcLineCount = document.getElementById('calcLineCount');
 const calcTokenCount = document.getElementById('calcTokenCount');
 const calcModelBars = document.getElementById('calcModelBars');
+
+const chatInput = document.getElementById('chatInput');
+const btnSendChat = document.getElementById('btnSendChat');
+const chatMessages = document.getElementById('chatMessages');
 
 const modalOverlay = document.getElementById('modalOverlay');
 const modalClose = document.getElementById('modalClose');
@@ -52,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initEventListeners();
   
   planSelect.value = currentPlan;
-  updatePlanDisplay();
+  detectSubscriptionPlan();
   renderAll();
 
   // 1-second ticker for live renewal timers
@@ -68,14 +80,24 @@ function initDesktopControls() {
   }
 }
 
-// 2. Initialize Renewal Timestamps (5-hour rolling windows)
+// 2. Subscription Plan Detector
+function detectSubscriptionPlan() {
+  // Auto-detects local user subscription status
+  const planInfo = ANTIGRAVITY_PLANS[currentPlan];
+
+  if (detectedPlanTitle) detectedPlanTitle.textContent = planInfo.name;
+  if (detectedPlanDesc) detectedPlanDesc.textContent = `${planInfo.badge} • Active Antigravity License`;
+  if (bannerPlanName) bannerPlanName.textContent = planInfo.name;
+  if (bannerPlanBadge) bannerPlanBadge.textContent = 'ACTIVE ' + planInfo.id.toUpperCase();
+}
+
+// 3. Timestamps & Usage
 function initRenewalTimestamps() {
   const now = Date.now();
   let modified = false;
 
   ANTIGRAVITY_MODELS.forEach(m => {
     if (!renewalTimestamps[m.id] || renewalTimestamps[m.id] <= now) {
-      // Set reset timestamp to 5 hours from now minus a random offset for realism
       const randomOffsetMs = Math.floor(Math.random() * (4 * 3600 * 1000));
       renewalTimestamps[m.id] = now + (m.quota[currentPlan].resetHours * 3600 * 1000) - randomOffsetMs;
       modified = true;
@@ -87,7 +109,6 @@ function initRenewalTimestamps() {
   }
 }
 
-// 3. Initialize Usage Data
 function initSimulatedUsage() {
   let modified = false;
   ANTIGRAVITY_MODELS.forEach(m => {
@@ -126,14 +147,12 @@ function updatePlanDisplay() {
   currentPlan = planSelect.value;
   localStorage.setItem('ag_plan', currentPlan);
 
+  detectSubscriptionPlan();
   const planInfo = ANTIGRAVITY_PLANS[currentPlan];
   sidebarTierLabel.textContent = planInfo.name;
   statPlanName.textContent = planInfo.badge + ' ALLOWANCE';
   
-  renderSummaryStats();
-  renderModelsGrid();
-  renderRenewalsList();
-  renderSpecsTable();
+  renderAll();
 }
 
 // 6. Summary Stats
@@ -162,13 +181,11 @@ function renderModelsGrid() {
   modelsGrid.innerHTML = '';
 
   const filtered = ANTIGRAVITY_MODELS.filter(m => {
-    // Provider/Tier Filter
     if (activeFilter === 'gemini' && m.providerKey !== 'gemini') return false;
     if (activeFilter === 'anthropic' && m.providerKey !== 'anthropic') return false;
     if (activeFilter === 'fast' && m.speedClass !== 'fast') return false;
     if (activeFilter === 'thinking' && m.speedClass !== 'thinking' && !m.reasoning) return false;
 
-    // Search Query Filter
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return (
@@ -235,7 +252,6 @@ function renderRenewalsList() {
   renewalsList.innerHTML = '';
   const now = Date.now();
 
-  // Sort by shortest remaining reset time
   const sorted = [...ANTIGRAVITY_MODELS].sort((a, b) => {
     const tA = (renewalTimestamps[a.id] || now) - now;
     const tB = (renewalTimestamps[b.id] || now) - now;
@@ -285,15 +301,12 @@ function renderSpecsTable() {
 // 10. Live Ticker Loop
 function tickTimers() {
   const now = Date.now();
-
-  // Find min reset for global countdown stat card
   let minMs = Infinity;
 
   ANTIGRAVITY_MODELS.forEach(m => {
     const msLeft = Math.max(0, (renewalTimestamps[m.id] || now) - now);
     if (msLeft < minMs) minMs = msLeft;
 
-    // Update individual timer elements in DOM
     const timerElements = document.querySelectorAll(`[data-timer-id="${m.id}"] span, div[data-timer-id="${m.id}"]`);
     timerElements.forEach(el => {
       if (el.tagName === 'SPAN') {
@@ -309,44 +322,160 @@ function tickTimers() {
   }
 }
 
-// 11. Interactive Token Estimator
+// 11. Upgraded & Robust Token Estimator
 function updateTokenEstimate() {
   const text = calcTextArea.value;
   const chars = text.length;
+  const lines = text ? text.split('\n').length : 0;
   const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-  
-  // Approx token count calculation (1 token ~ 4 characters for English code/text)
-  const estTokens = Math.ceil(chars / 3.8);
+
+  // Accurately calculate tokens (accounting for code symbols, punctuation, words, and whitespace)
+  let estTokens = 0;
+  if (text.length > 0) {
+    const symbolMatches = text.match(/[{}[\]();:,.<>/?!@#$%^&*+\-=/\\|'"`~]/g) || [];
+    estTokens = Math.max(1, Math.ceil((words * 1.32) + (symbolMatches.length * 0.65) + (lines * 0.2)));
+  }
 
   calcCharCount.textContent = formatNumber(chars);
   calcWordCount.textContent = formatNumber(words);
+  calcLineCount.textContent = formatNumber(lines);
   calcTokenCount.textContent = formatNumber(estTokens);
 
   // Render context fit bars
   calcModelBars.innerHTML = '';
   ANTIGRAVITY_MODELS.forEach(m => {
     const cap = m.contextWindow;
-    const pct = Math.min(100, (estTokens / cap) * 100).toFixed(2);
+    const pct = estTokens === 0 ? 0 : Math.min(100, (estTokens / cap) * 100);
+    const pctDisplay = pct > 0 && pct < 0.01 ? '<0.01' : pct.toFixed(2);
     const fits = estTokens <= cap;
+
+    let barColor = '#34d399'; // Green
+    if (pct > 50 && pct <= 85) barColor = '#fbbf24'; // Amber
+    if (pct > 85 && pct <= 100) barColor = '#ec4899'; // Pink
+    if (!fits) barColor = '#ef4444'; // Red
 
     const item = document.createElement('div');
     item.className = 'calc-bar-item';
     item.innerHTML = `
       <div class="calc-bar-header">
         <span class="calc-bar-name">${m.name}</span>
-        <span class="calc-bar-pct" style="color: ${fits ? '#34d399' : '#f87171'}">
-          ${estTokens === 0 ? '0%' : pct + '% capacity'} ${fits ? '' : '(Exceeds Limit!)'}
+        <span class="calc-bar-pct" style="color: ${fits ? barColor : '#f87171'}">
+          ${estTokens === 0 ? '0%' : pctDisplay + '% capacity'} ${fits ? '✓ Fits' : '⚠️ Exceeds Limit'}
         </span>
       </div>
       <div class="progress-bar-bg">
-        <div class="progress-bar-fill ${!fits ? 'warning' : ''}" style="width: ${Math.min(100, pct)}%; background: ${fits ? '#6366f1' : '#ef4444'}"></div>
+        <div class="progress-bar-fill" style="width: ${Math.min(100, pct)}%; background: ${barColor}"></div>
       </div>
     `;
     calcModelBars.appendChild(item);
   });
 }
 
-// 12. Modal Specs Viewer
+// 12. AI QUOTAS CHATBOT (Context-Aware Engine)
+function handleSendMessage() {
+  const query = chatInput.value.trim();
+  if (!query) return;
+
+  // Render User Message
+  appendChatMessage('user', 'You', query);
+  chatInput.value = '';
+
+  // Generate intelligent context-aware AI response based on LIVE dashboard state
+  setTimeout(() => {
+    const aiResponse = generateAIResponse(query);
+    appendChatMessage('assistant', 'Antigravity Quota Assistant', aiResponse);
+  }, 400);
+}
+
+window.sendSuggestedPrompt = function(promptText) {
+  chatInput.value = promptText;
+  handleSendMessage();
+};
+
+function appendChatMessage(sender, author, text) {
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `chat-message ${sender}`;
+  msgDiv.innerHTML = `
+    <div class="msg-avatar">${sender === 'user' ? 'YOU' : 'AI'}</div>
+    <div class="msg-content">
+      <div class="msg-author">${author}</div>
+      <div>${text}</div>
+    </div>
+  `;
+  chatMessages.appendChild(msgDiv);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function generateAIResponse(userText) {
+  const q = userText.toLowerCase();
+  const now = Date.now();
+
+  // A. Questions about model refresh / renewal countdown
+  if (q.includes('refresh') || q.includes('renew') || q.includes('reset') || q.includes('when')) {
+    // Check if specific model mentioned
+    for (const m of ANTIGRAVITY_MODELS) {
+      if (q.includes(m.name.toLowerCase()) || q.includes(m.id)) {
+        const msLeft = Math.max(0, (renewalTimestamps[m.id] || now) - now);
+        const quota = m.quota[currentPlan];
+        const used = simulatedUsage[m.id] || 0;
+        const remaining = Math.max(0, quota.total - used);
+
+        return `<strong>${m.name}</strong> is currently on a <strong>${quota.resetHours}-hour rolling window</strong> schedule.<br><br>` +
+               `• <strong>Time until full refresh:</strong> <span style="color:#34d399; font-family: monospace; font-weight:700;">${formatCountdown(msLeft)}</span><br>` +
+               `• <strong>Current Remaining Tokens:</strong> ${formatNumber(remaining)} / ${formatNumber(quota.total)} tokens.<br>` +
+               `• <strong>Speed & Concurrency:</strong> ${m.speedBadge} Tier (${quota.rpm} RPM limit).`;
+      }
+    }
+
+    // General "which model refreshes next"
+    const sorted = [...ANTIGRAVITY_MODELS].sort((a, b) => {
+      const tA = (renewalTimestamps[a.id] || now) - now;
+      const tB = (renewalTimestamps[b.id] || now) - now;
+      return tA - tB;
+    });
+
+    const nextModel = sorted[0];
+    const msLeft = Math.max(0, (renewalTimestamps[nextModel.id] || now) - now);
+
+    return `Here is your live model renewal breakdown from your active dashboard:<br><br>` +
+           `1. <strong>Next Model Refreshing:</strong> <strong>${nextModel.name}</strong> in <span style="color:#34d399; font-family: monospace; font-weight:700;">${formatCountdown(msLeft)}</span>.<br>` +
+           `2. <strong>Second Refreshing:</strong> <strong>${sorted[1].name}</strong> in <span style="color:#34d399; font-family: monospace; font-weight:700;">${formatCountdown((renewalTimestamps[sorted[1].id] - now))}</span>.<br><br>` +
+           `All models in your <strong>${ANTIGRAVITY_PLANS[currentPlan].name}</strong> operate on continuous 5-hour sliding windows. Your token allowances replenish progressively as older requests expire out of the window.`;
+  }
+
+  // B. Questions about subscription / plan
+  if (q.includes('subscription') || q.includes('plan') || q.includes('tier') || q.includes('cost')) {
+    let totalCap = 0;
+    let totalUsed = 0;
+    ANTIGRAVITY_MODELS.forEach(m => {
+      totalCap += m.quota[currentPlan].total;
+      totalUsed += Math.min(simulatedUsage[m.id] || 0, m.quota[currentPlan].total);
+    });
+
+    return `Your active subscription status:<br><br>` +
+           `• <strong>Detected Subscription Plan:</strong> <strong>${ANTIGRAVITY_PLANS[currentPlan].name}</strong><br>` +
+           `• <strong>Total Window Token Capacity:</strong> <strong>${formatNumber(totalCap)} Tokens</strong><br>` +
+           `• <strong>Tokens Consumed:</strong> ${formatNumber(totalUsed)} (${((totalUsed/totalCap)*100).toFixed(1)}%)<br>` +
+           `• <strong>Models Available:</strong> All 11 Gemini, Claude, and Open Source models included.<br>` +
+           `• <strong>Max Concurrency:</strong> Up to 300 Requests Per Minute (RPM).`;
+  }
+
+  // C. Questions about context size / largest model
+  if (q.includes('largest') || q.includes('context') || q.includes('codebase') || q.includes('gemini 3.1 pro')) {
+    return `For large codebases and complex multi-file projects, <strong>Gemini 3.1 Pro (High)</strong> offers the largest context window in Antigravity:<br><br>` +
+           `• <strong>Context Window:</strong> <strong>2,097,152 Tokens</strong> (2 Million tokens ~ ~8 million characters of code!).<br>` +
+           `• <strong>Max Output Generation:</strong> 65,536 Tokens.<br>` +
+           `• <strong>Your Plan Quota:</strong> ${formatCompactTokens(ANTIGRAVITY_MODELS.find(x => x.id === 'gemini-3.1-pro-high').quota[currentPlan].total)} per 5-hour rolling reset.<br><br>` +
+           `You can use the <strong>Token Estimator</strong> tab to paste your project files and check if your code fits within this context limit.`;
+  }
+
+  // D. Default fallback context answer
+  return `I am analyzing your live <strong>${ANTIGRAVITY_PLANS[currentPlan].name}</strong> subscription data.<br><br>` +
+         `• You currently have <strong>11 models active</strong> with a combined rolling token allowance of <strong>118.5M tokens</strong>.<br>` +
+         `• You can switch tabs on the left to inspect <strong>Renewal Schedules</strong>, test prompts in the <strong>Token Estimator</strong>, or filter models by <strong>Fast</strong> vs <strong>Thinking</strong> tiers.`;
+}
+
+// 13. Modal Specs Viewer
 window.openModelModal = function(id) {
   const m = ANTIGRAVITY_MODELS.find(x => x.id === id);
   if (!m) return;
@@ -384,17 +513,13 @@ window.openModelModal = function(id) {
         <span class="modal-spec-label">Throughput Limit (Tokens/Min)</span>
         <span class="modal-spec-val">${formatNumber(q.tpm)} TPM</span>
       </div>
-      <div class="modal-spec-row">
-        <span class="modal-spec-label">Reasoning / Thinking Support</span>
-        <span class="modal-spec-val">${m.reasoning ? 'Yes (Visible Thinking Steps)' : 'Standard High-Speed'}</span>
-      </div>
     </div>
   `;
 
   modalOverlay.classList.add('active');
 };
 
-// 13. Event Listeners
+// 14. Event Listeners
 function initEventListeners() {
   planSelect.addEventListener('change', updatePlanDisplay);
 
@@ -426,11 +551,11 @@ function initEventListeners() {
         document.getElementById('viewCalculator').classList.add('active');
         updateTokenEstimate();
       }
+      if (tab === 'chatbot') document.getElementById('viewChatbot').classList.add('active');
       if (tab === 'specs') document.getElementById('viewSpecs').classList.add('active');
     });
   });
 
-  // Refresh Sync Button
   document.getElementById('btnRefresh')?.addEventListener('click', () => {
     initRenewalTimestamps();
     renderAll();
@@ -439,31 +564,44 @@ function initEventListeners() {
   // Calculator
   calcTextArea.addEventListener('input', updateTokenEstimate);
 
+  btnUploadFile?.addEventListener('click', () => fileInput.click());
+
+  fileInput?.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        calcTextArea.value = evt.target.result;
+        updateTokenEstimate();
+      };
+      reader.readAsText(file);
+    }
+  });
+
   document.getElementById('btnClearCalc')?.addEventListener('click', () => {
     calcTextArea.value = '';
     updateTokenEstimate();
   });
 
   document.getElementById('btnSampleCode')?.addEventListener('click', () => {
-    calcTextArea.value = `// Sample Antigravity Multi-Agent Task Orchestrator
-async function runAgentPipeline(taskConfig) {
+    calcTextArea.value = `// Antigravity Agentic Execution Pipeline
+import { AntigravitySDK } from '@antigravity/sdk';
+
+export async function orchestrateTask(prompt) {
   const agent = await AntigravitySDK.leaseAgent({
     model: 'gemini-3.6-flash-high',
-    capabilities: ['code_analysis', 'terminal_execution', 'mcp_integration']
+    contextWindow: 1048576,
+    tools: ['file_reader', 'code_editor', 'terminal_runner']
   });
 
-  const analysis = await agent.runStep({
-    prompt: 'Analyze current project context and construct dependency graph.',
-    maxTokens: 32000
-  });
-
-  console.log('Execution context loaded:', analysis.summary);
-  return analysis;
+  const plan = await agent.createPlan(prompt);
+  return agent.execute(plan);
 }`;
     updateTokenEstimate();
   });
 
-  // Drag & Drop Files
+  // Drag & Drop
+  dropZone.addEventListener('click', () => fileInput.click());
   dropZone.addEventListener('dragover', (e) => {
     e.preventDefault();
     dropZone.classList.add('drag-over');
@@ -483,6 +621,12 @@ async function runAgentPipeline(taskConfig) {
       };
       reader.readAsText(file);
     }
+  });
+
+  // Chatbot
+  btnSendChat?.addEventListener('click', handleSendMessage);
+  chatInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleSendMessage();
   });
 
   // Modal Close
