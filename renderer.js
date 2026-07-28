@@ -79,6 +79,62 @@ function detectSubscriptionPlan() {
   if (detectedPlanDesc) detectedPlanDesc.textContent = `${planInfo.badge} • Active Antigravity License`;
   if (bannerPlanName) bannerPlanName.textContent = planInfo.name;
   if (bannerPlanBadge) bannerPlanBadge.textContent = 'ACTIVE ' + planInfo.id.toUpperCase();
+}/**
+ * CONNECT TO LIVE RUNNING ANTIGRAVITY IDE PROCESS VIA DEVTOOLS WS PROTOCOL
+ * Multi-port scanner (50836, 9222, 9229) for seamless GitHub clone compatibility.
+ */
+async function syncLiveIDETelemetry() {
+  const portsToScan = [50836, 9222, 9229];
+  let connected = false;
+
+  for (const port of portsToScan) {
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/json/list`);
+      if (!res.ok) continue;
+      const list = await res.json();
+      const target = list.find(t => t.url.includes('settingsScreen=Models') || t.title.includes('Statistics') || t.type === 'page');
+      if (!target) continue;
+
+      const ws = new WebSocket(target.webSocketDebuggerUrl);
+      ws.onopen = () => {
+        ws.send(JSON.stringify({
+          id: 1,
+          method: 'Runtime.evaluate',
+          params: {
+            expression: 'document.body.innerText',
+            returnByValue: true
+          }
+        }));
+      };
+      ws.onmessage = (evt) => {
+        const resp = JSON.parse(evt.data);
+        if (resp.id === 1 && resp.result && resp.result.result && resp.result.result.value) {
+          parseAndApplyIDEText(resp.result.result.value);
+          updateStatusPill(true, `Live Sync (Port ${port})`);
+        }
+        ws.close();
+      };
+      connected = true;
+      break;
+    } catch (err) {
+      // Try next port
+    }
+  }
+
+  if (!connected) {
+    updateStatusPill(false, 'Standalone Mode (Open IDE to Sync)');
+  }
+}
+
+function updateStatusPill(isLive, text) {
+  const statusDot = document.querySelector('.status-dot');
+  const statusText = document.getElementById('statusText');
+  if (statusDot) {
+    statusDot.className = isLive ? 'status-dot online' : 'status-dot offline';
+  }
+  if (statusText) {
+    statusText.textContent = text;
+  }
 }
 
 function initRenewalTimestamps() {

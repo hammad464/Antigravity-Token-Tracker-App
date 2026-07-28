@@ -5,7 +5,10 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dev": "electron ."
+    "dev": "electron .",
+    "dist": "electron-builder --win nsis",
+    "portable": "electron-builder --win portable",
+    "pack": "electron-builder --win dir"
   },
   "keywords": [
     "antigravity",
@@ -17,8 +20,27 @@
   ],
   "author": "Antigravity User",
   "license": "MIT",
+  "build": {
+    "appId": "com.antigravity.token-tracker",
+    "productName": "Antigravity Quotas & Token Monitor",
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "files": [
+      "**/*",
+      "!dist/*"
+    ]
+  },
   "dependencies": {},
   "devDependencies": {
-    "electron": "^31.0.0"
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
   }
 }
