@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,17 +8,23 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
 </head>
+
 <body>
-  <!-- Native Desktop Custom Window Titlebar -->
+  <!-- Native Desktop Custom Window Titlebar Implemented -->
   <div class="desktop-titlebar" id="titlebar">
     <div class="titlebar-drag-area">
       <div class="app-logo">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#4F46E5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M2 17L12 22L22 17" stroke="#818CF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M2 12L12 17L22 12" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#4F46E5" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
+          <path d="M2 17L12 22L22 17" stroke="#818CF8" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
+          <path d="M2 12L12 17L22 12" stroke="#6366F1" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
         </svg>
         <span class="app-title">ANTIGRAVITY</span>
         <span class="app-subtitle">QUOTAS & TOKENS</span>
@@ -29,13 +36,19 @@
     </div>
     <div class="window-controls">
       <button class="control-btn minimize" id="btnMinimize" title="Minimize Window">
-        <svg width="12" height="12" viewBox="0 0 12 12"><rect x="2" y="5.5" width="8" height="1" fill="currentColor"/></svg>
+        <svg width="12" height="12" viewBox="0 0 12 12">
+          <rect x="2" y="5.5" width="8" height="1" fill="currentColor" />
+        </svg>
       </button>
       <button class="control-btn maximize" id="btnMaximize" title="Maximize Window">
-        <svg width="12" height="12" viewBox="0 0 12 12"><rect x="2.5" y="2.5" width="7" height="7" stroke="currentColor" fill="none" stroke-width="1"/></svg>
+        <svg width="12" height="12" viewBox="0 0 12 12">
+          <rect x="2.5" y="2.5" width="7" height="7" stroke="currentColor" fill="none" stroke-width="1" />
+        </svg>
       </button>
       <button class="control-btn close" id="btnClose" title="Close Application">
-        <svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="1.2"/></svg>
+        <svg width="12" height="12" viewBox="0 0 12 12">
+          <path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="1.2" />
+        </svg>
       </button>
     </div>
   </div>
@@ -65,24 +78,44 @@
 
       <nav class="nav-menu">
         <button class="nav-item active" data-tab="dashboard">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+          </svg>
           <span>Model Quotas</span>
         </button>
         <button class="nav-item" data-tab="renewals">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
           <span>Renewal Schedules</span>
         </button>
         <button class="nav-item" data-tab="calculator">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><path d="M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M8 18h.01M12 18h.01"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="4" y="2" width="16" height="20" rx="2" />
+            <line x1="8" y1="6" x2="16" y2="6" />
+            <line x1="16" y1="14" x2="16" y2="18" />
+            <path d="M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M8 18h.01M12 18h.01" />
+          </svg>
           <span>Token Estimator</span>
         </button>
         <button class="nav-item" data-tab="chatbot">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
           <span>AI Quotas Assistant</span>
           <span class="badge-new">AI</span>
         </button>
         <button class="nav-item" data-tab="specs">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 2-2 2v16a2 2 0 0 2 2 2h12a2 2 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 2-2 2v16a2 2 0 0 2 2 2h12a2 2 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+          </svg>
           <span>Model Specs Matrix</span>
         </button>
       </nav>
@@ -103,7 +136,10 @@
       <!-- Top Action Bar & Filters -->
       <header class="top-bar">
         <div class="search-box">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
           <input type="text" id="searchInput" placeholder="Search models (e.g. Gemini 3.6, Claude Thinking, 1M)...">
         </div>
 
@@ -117,7 +153,10 @@
         </div>
 
         <button class="btn-refresh" id="btnRefresh" title="Sync Subscription Data">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8M22 12.5a10 10 0 0 1-18.8 4.2L2.5 16"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6" />
+            <path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8M22 12.5a10 10 0 0 1-18.8 4.2L2.5 16" />
+          </svg>
           <span>Sync Plan</span>
         </button>
       </header>
@@ -127,11 +166,15 @@
         <!-- Subscription Detection Banner -->
         <div class="subscription-banner">
           <div class="sub-banner-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+            </svg>
           </div>
           <div class="sub-banner-info">
             <h4>Active Subscription Plan: <span id="bannerPlanName">Antigravity Pro</span></h4>
-            <p>Your subscription includes access to shared-pool models with 5-hour rolling renewal sprints, a strict 7-day weekly baseline, and priority reasoning quotas.</p>
+            <p>Your subscription includes access to shared-pool models with 5-hour rolling renewal sprints, a strict
+              7-day weekly baseline, and priority reasoning quotas.</p>
           </div>
           <div class="sub-banner-badge" id="bannerPlanBadge">ACTIVE PRO</div>
         </div>
@@ -141,7 +184,10 @@
           <div class="ide-card-header">
             <h3>Model Quota</h3>
             <p class="ide-quota-intro">
-              Within each group, models share a weekly limit and a 5-hour limit. Quota is consumed proportionally to the cost of the tokens. Thus, limits will last longer with shorter tasks or using more cost-effective models. The 5-hour limit smooths out aggregate demand to fairly distribute global capacity across all users, while your weekly limit is tied directly to your individual tier.
+              Within each group, models share a weekly limit and a 5-hour limit. Quota is consumed proportionally to the
+              cost of the tokens. Thus, limits will last longer with shorter tasks or using more cost-effective models.
+              The 5-hour limit smooths out aggregate demand to fairly distribute global capacity across all users, while
+              your weekly limit is tied directly to your individual tier.
             </p>
           </div>
 
@@ -150,7 +196,11 @@
             <div class="ide-group-box">
               <div class="ide-group-title">
                 <span>Gemini Models</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
               </div>
 
               <div class="ide-limit-item">
@@ -158,7 +208,8 @@
                   <span class="ide-limit-name">Weekly Limit</span>
                   <span class="ide-limit-pct" id="geminiWeeklyPct">68%</span>
                 </div>
-                <div class="ide-limit-desc" id="geminiWeeklyDesc">You have used some of your weekly limit, it will fully refresh in 4 hours, 57 minutes.</div>
+                <div class="ide-limit-desc" id="geminiWeeklyDesc">You have used some of your weekly limit, it will fully
+                  refresh in 4 hours, 57 minutes.</div>
                 <div class="progress-bar-bg">
                   <div class="progress-bar-fill" id="geminiWeeklyBar" style="width: 68%; background: #10b981;"></div>
                 </div>
@@ -169,7 +220,8 @@
                   <span class="ide-limit-name">Five Hour Limit</span>
                   <span class="ide-limit-pct" id="gemini5hrPct">82%</span>
                 </div>
-                <div class="ide-limit-desc" id="gemini5hrDesc">You have used some of your 5-hour limit, it will fully refresh in 1 hour, 18 minutes.</div>
+                <div class="ide-limit-desc" id="gemini5hrDesc">You have used some of your 5-hour limit, it will fully
+                  refresh in 1 hour, 18 minutes.</div>
                 <div class="progress-bar-bg">
                   <div class="progress-bar-fill" id="gemini5hrBar" style="width: 82%; background: #10b981;"></div>
                 </div>
@@ -180,7 +232,11 @@
             <div class="ide-group-box">
               <div class="ide-group-title">
                 <span>Claude and GPT models</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
               </div>
 
               <div class="ide-limit-item">
@@ -188,7 +244,8 @@
                   <span class="ide-limit-name">Weekly Limit</span>
                   <span class="ide-limit-pct" id="claudeWeeklyPct">58%</span>
                 </div>
-                <div class="ide-limit-desc" id="claudeWeeklyDesc">You have hit your 5-hour limit, so the weekly limit does not currently apply. Your 5-hour limit will refresh in 1 hour, 18 minutes.</div>
+                <div class="ide-limit-desc" id="claudeWeeklyDesc">You have hit your 5-hour limit, so the weekly limit
+                  does not currently apply. Your 5-hour limit will refresh in 1 hour, 18 minutes.</div>
                 <div class="progress-bar-bg">
                   <div class="progress-bar-fill" id="claudeWeeklyBar" style="width: 58%; background: #10b981;"></div>
                 </div>
@@ -199,7 +256,9 @@
                   <span class="ide-limit-name">Five Hour Limit</span>
                   <span class="ide-limit-pct text-danger" id="claude5hrPct">0%</span>
                 </div>
-                <div class="ide-limit-desc text-warning" id="claude5hrDesc">You have hit your 5-hour limit, it will refresh in 1 hour, 18 minutes. If on a supported paid plan, you can use AI credits in the interim.</div>
+                <div class="ide-limit-desc text-warning" id="claude5hrDesc">You have hit your 5-hour limit, it will
+                  refresh in 1 hour, 18 minutes. If on a supported paid plan, you can use AI credits in the interim.
+                </div>
                 <div class="progress-bar-bg">
                   <div class="progress-bar-fill" id="claude5hrBar" style="width: 0%; background: #ef4444;"></div>
                 </div>
@@ -224,7 +283,8 @@
       <section id="viewRenewals" class="view-panel">
         <div class="section-header">
           <h2>Token Renewal Timers & Rolling Reset Cycles</h2>
-          <span class="section-subtitle">Detailed breakdown of when each model's token bucket will fully replenish</span>
+          <span class="section-subtitle">Detailed breakdown of when each model's token bucket will fully
+            replenish</span>
         </div>
         <div class="renewals-container" id="renewalsList">
           <!-- Dynamically populated -->
@@ -235,7 +295,8 @@
       <section id="viewCalculator" class="view-panel">
         <div class="section-header">
           <h2>Interactive Token Estimator & Context Window Checker</h2>
-          <span class="section-subtitle">Paste prompt text or select local files to measure exact token size and model compatibility</span>
+          <span class="section-subtitle">Paste prompt text or select local files to measure exact token size and model
+            compatibility</span>
         </div>
 
         <div class="calculator-layout">
@@ -249,18 +310,27 @@
                 <button class="btn-sm text-danger" id="btnClearCalc">Clear</button>
               </div>
             </div>
-            <textarea id="calcTextArea" placeholder="Paste code, prompts, JSON, or drop file here to calculate exact tokens..."></textarea>
-            
+            <textarea id="calcTextArea"
+              placeholder="Paste code, prompts, JSON, or drop file here to calculate exact tokens..."></textarea>
+
             <div class="drop-zone" id="dropZone">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
               <span>Drag & drop files here (or click 'Select File' above)</span>
             </div>
 
             <div class="calc-metrics-row">
-              <div class="calc-metric"><span class="metric-val" id="calcCharCount">0</span><span class="metric-label">Characters</span></div>
-              <div class="calc-metric"><span class="metric-val" id="calcWordCount">0</span><span class="metric-label">Words</span></div>
-              <div class="calc-metric"><span class="metric-val" id="calcLineCount">0</span><span class="metric-label">Lines</span></div>
-              <div class="calc-metric highlight"><span class="metric-val" id="calcTokenCount">0</span><span class="metric-label">Est. Tokens</span></div>
+              <div class="calc-metric"><span class="metric-val" id="calcCharCount">0</span><span
+                  class="metric-label">Characters</span></div>
+              <div class="calc-metric"><span class="metric-val" id="calcWordCount">0</span><span
+                  class="metric-label">Words</span></div>
+              <div class="calc-metric"><span class="metric-val" id="calcLineCount">0</span><span
+                  class="metric-label">Lines</span></div>
+              <div class="calc-metric highlight"><span class="metric-val" id="calcTokenCount">0</span><span
+                  class="metric-label">Est. Tokens</span></div>
             </div>
           </div>
 
@@ -278,23 +348,35 @@
       <section id="viewChatbot" class="view-panel">
         <div class="section-header">
           <h2>Antigravity Quotas AI Assistant</h2>
-          <span class="section-subtitle">Ask any question about rolling windows, quota resets, hidden caps, live dashboard data, or model specs</span>
+          <span class="section-subtitle">Ask any question about rolling windows, quota resets, hidden caps, live
+            dashboard data, or model specs</span>
         </div>
 
         <div class="chatbot-container">
           <div class="chat-sidebar-info">
             <div class="ai-avatar-badge">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
               <span>Deep Reasoning Active</span>
             </div>
-            <p class="chat-intro-text">Ask exact questions about how rolling window resets work, shared model pools, the 7-day weekly baseline lockout, or how to check your real-time quota health.</p>
+            <p class="chat-intro-text">Ask exact questions about how rolling window resets work, shared model pools, the
+              7-day weekly baseline lockout, or how to check your real-time quota health.</p>
 
             <div class="suggested-prompts-title">SUGGESTED QUESTIONS</div>
             <div class="suggested-prompts">
-              <button class="prompt-pill" onclick="sendSuggestedPrompt('How does the 7-day weekly baseline lockout work?')">🛑 How does the 7-day weekly lockout work?</button>
-              <button class="prompt-pill" onclick="sendSuggestedPrompt('What are shared model pools and how do they affect my quota?')">🔗 What are shared model pools?</button>
-              <button class="prompt-pill" onclick="sendSuggestedPrompt('How does Work Done compute weight affect my quota drain rate?')">⚡ How does "Work Done" affect quota?</button>
-              <button class="prompt-pill" onclick="sendSuggestedPrompt('How do I check my real-time quota health in the IDE?')">📊 How do I check live quota health?</button>
+              <button class="prompt-pill"
+                onclick="sendSuggestedPrompt('How does the 7-day weekly baseline lockout work?')">🛑 How does the 7-day
+                weekly lockout work?</button>
+              <button class="prompt-pill"
+                onclick="sendSuggestedPrompt('What are shared model pools and how do they affect my quota?')">🔗 What
+                are shared model pools?</button>
+              <button class="prompt-pill"
+                onclick="sendSuggestedPrompt('How does Work Done compute weight affect my quota drain rate?')">⚡ How
+                does "Work Done" affect quota?</button>
+              <button class="prompt-pill"
+                onclick="sendSuggestedPrompt('How do I check my real-time quota health in the IDE?')">📊 How do I check
+                live quota health?</button>
             </div>
           </div>
 
@@ -304,16 +386,22 @@
                 <div class="msg-avatar">AI</div>
                 <div class="msg-content">
                   <div class="msg-author">Antigravity Quota Assistant</div>
-                  <p>Hello! I am your dedicated Antigravity AI Assistant. I can answer <strong>any question</strong> about your shared model pools, rolling 5-hour sprints, the strict 7-day weekly baseline lockout, or how to check your real-time quota health.</p>
+                  <p>Hello! I am your dedicated Antigravity AI Assistant. I can answer <strong>any question</strong>
+                    about your shared model pools, rolling 5-hour sprints, the strict 7-day weekly baseline lockout, or
+                    how to check your real-time quota health.</p>
                   <p>Ask your question below exactly as you'd like it answered!</p>
                 </div>
               </div>
             </div>
 
             <div class="chat-input-area">
-              <input type="text" id="chatInput" placeholder="Ask any question about rolling resets, weekly caps, live timers, or model limits...">
+              <input type="text" id="chatInput"
+                placeholder="Ask any question about rolling resets, weekly caps, live timers, or model limits...">
               <button class="btn-send-chat" id="btnSendChat">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="22" y1="2" x2="11" y2="13" />
+                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                </svg>
                 <span>Send</span>
               </button>
             </div>
@@ -325,7 +413,8 @@
       <section id="viewSpecs" class="view-panel">
         <div class="section-header">
           <h2>Antigravity Model Capabilities & Specifications Matrix</h2>
-          <span class="section-subtitle">Comparative table of input/output token bounds, reasoning support, and rate limits</span>
+          <span class="section-subtitle">Comparative table of input/output token bounds, reasoning support, and rate
+            limits</span>
         </div>
         <div class="table-card">
           <table class="specs-table">
@@ -369,4 +458,5 @@
   <script src="modelsData.js"></script>
   <script src="renderer.js"></script>
 </body>
+
 </html>
