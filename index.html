@@ -51,7 +51,7 @@
             <span class="detected-label">DETECTED SUBSCRIPTION</span>
           </div>
           <div class="detected-plan-name" id="detectedPlanTitle">Antigravity Pro</div>
-          <div class="detected-plan-desc" id="detectedPlanDesc">Pro Tier Active • 118.5M Rolling Budget</div>
+          <div class="detected-plan-desc" id="detectedPlanDesc">PRO TIER • Active Antigravity License</div>
           <div class="plan-badge-container mt-2">
             <span class="sidebar-section-title">SUBSCRIPTION MODE</span>
             <select id="planSelect" class="plan-selector">
@@ -108,9 +108,10 @@
         </div>
 
         <div class="filter-group">
-          <button class="filter-chip active" data-filter="all">All Models (11)</button>
+          <button class="filter-chip active" data-filter="all">All Models</button>
           <button class="filter-chip" data-filter="gemini">Gemini</button>
           <button class="filter-chip" data-filter="anthropic">Claude</button>
+          <button class="filter-chip" data-filter="oss">OSS / GPT</button>
           <button class="filter-chip" data-filter="fast">Fast Tiers</button>
           <button class="filter-chip" data-filter="thinking">Thinking / Reasoning</button>
         </div>
@@ -130,7 +131,7 @@
           </div>
           <div class="sub-banner-info">
             <h4>Active Subscription Plan: <span id="bannerPlanName">Antigravity Pro</span></h4>
-            <p>Your subscription includes access to 11 high-throughput models with 5-hour rolling renewal windows, 2M context windows, and priority reasoning quotas.</p>
+            <p>Your subscription includes access to shared-pool models with 5-hour rolling renewal sprints, a strict 7-day weekly baseline, and priority reasoning quotas.</p>
           </div>
           <div class="sub-banner-badge" id="bannerPlanBadge">ACTIVE PRO</div>
         </div>
@@ -142,7 +143,7 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             </div>
             <div class="stat-details">
-              <span class="stat-label">Total Window Tokens</span>
+              <span class="stat-label">Shared Pool Compute</span>
               <span class="stat-value" id="statTotalTokens">118,500,000</span>
               <span class="stat-sub" id="statPlanName">Antigravity Pro Allowance</span>
             </div>
@@ -240,7 +241,7 @@
 
           <div class="calc-results-card">
             <h3>Model Context Window Fit</h3>
-            <p class="calc-sub">Shows context window usage percentage for all 11 models:</p>
+            <p class="calc-sub">Shows context window usage percentage for all available models:</p>
             <div class="calc-model-bars" id="calcModelBars">
               <!-- Dynamically populated -->
             </div>
@@ -261,14 +262,14 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               <span>Deep Reasoning Active</span>
             </div>
-            <p class="chat-intro-text">Ask exact questions about how rolling window resets work, whether usage resets to zero, weekly token caps, or live model timers.</p>
+            <p class="chat-intro-text">Ask exact questions about how rolling window resets work, shared model pools, the 7-day weekly baseline lockout, or how to check your real-time quota health.</p>
 
             <div class="suggested-prompts-title">SUGGESTED QUESTIONS</div>
             <div class="suggested-prompts">
-              <button class="prompt-pill" onclick="sendSuggestedPrompt('If I max out every model in 30 min, do tokens reset to zero all at once?')">🔄 If I max out in 30 min, does it reset all at once?</button>
-              <button class="prompt-pill" onclick="sendSuggestedPrompt('Is there any other limit like a weekly token cap?')">🛑 Is there a weekly token cap?</button>
-              <button class="prompt-pill" onclick="sendSuggestedPrompt('When will Gemini 3.6 Flash (High) refresh?')">⚡ When will Gemini 3.6 Flash refresh?</button>
-              <button class="prompt-pill" onclick="sendSuggestedPrompt('Which model has the largest context window for codebases?')">📚 Largest context model?</button>
+              <button class="prompt-pill" onclick="sendSuggestedPrompt('How does the 7-day weekly baseline lockout work?')">🛑 How does the 7-day weekly lockout work?</button>
+              <button class="prompt-pill" onclick="sendSuggestedPrompt('What are shared model pools and how do they affect my quota?')">🔗 What are shared model pools?</button>
+              <button class="prompt-pill" onclick="sendSuggestedPrompt('How does Work Done compute weight affect my quota drain rate?')">⚡ How does "Work Done" affect quota?</button>
+              <button class="prompt-pill" onclick="sendSuggestedPrompt('How do I check my real-time quota health in the IDE?')">📊 How do I check live quota health?</button>
             </div>
           </div>
 
@@ -278,7 +279,7 @@
                 <div class="msg-avatar">AI</div>
                 <div class="msg-content">
                   <div class="msg-author">Antigravity Quota Assistant</div>
-                  <p>Hello! I am your dedicated Antigravity AI Assistant. I can answer <strong>any question</strong> about your token limits, rolling 5-hour sliding windows, hidden caps, or live model reset countdowns.</p>
+                  <p>Hello! I am your dedicated Antigravity AI Assistant. I can answer <strong>any question</strong> about your shared model pools, rolling 5-hour sprints, the strict 7-day weekly baseline lockout, or how to check your real-time quota health.</p>
                   <p>Ask your question below exactly as you'd like it answered!</p>
                 </div>
               </div>
@@ -311,7 +312,7 @@
                 <th>Context Window</th>
                 <th>Max Output</th>
                 <th>Reasoning</th>
-                <th>Pro Window Quota</th>
+                <th>Shared Pool Allocation</th>
                 <th>Reset Cycle</th>
               </tr>
             </thead>
