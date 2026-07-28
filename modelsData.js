@@ -2,6 +2,12 @@
  * Antigravity Models & Quotas Reference Dataset
  * 100% Aligned with Official Antigravity IDE Settings Screen (image_00a58d.png).
  * Models share 2 official groups: 'gemini_models' and 'claude_gpt_models'.
+ *
+ * NOTE: usage percentages/timers are NOT stored here. They live once per
+ * shared pool (see GROUP_STATE in renderer.js), because every model in a
+ * pool genuinely shares one 5-hour limit and one weekly limit - giving each
+ * model its own independent fake percentage, as the previous version did,
+ * contradicted that and was misleading.
  */
 
 const ANTIGRAVITY_PLANS = {
@@ -49,9 +55,7 @@ const ANTIGRAVITY_MODELS = [
       pro: { total: 100, resetHours: 5, rpm: 150, tpm: 2000000 },
       ultra: { total: 100, resetHours: 5, rpm: 400, tpm: 5000000 },
       free: { total: 100, resetHours: 5, rpm: 60, tpm: 600000 }
-    },
-    defaultSimulatedUsage: 82.0,
-    defaultSimulatedWeeklyUsage: 68.0
+    }
   },
   {
     id: 'gemini-3.6-flash-med',
@@ -73,9 +77,7 @@ const ANTIGRAVITY_MODELS = [
       pro: { total: 100, resetHours: 5, rpm: 120, tpm: 1800000 },
       ultra: { total: 100, resetHours: 5, rpm: 300, tpm: 4500000 },
       free: { total: 100, resetHours: 5, rpm: 45, tpm: 500000 }
-    },
-    defaultSimulatedUsage: 65.0,
-    defaultSimulatedWeeklyUsage: 55.0
+    }
   },
   {
     id: 'gemini-3.6-flash-low',
@@ -97,9 +99,7 @@ const ANTIGRAVITY_MODELS = [
       pro: { total: 100, resetHours: 5, rpm: 90, tpm: 1200000 },
       ultra: { total: 100, resetHours: 5, rpm: 200, tpm: 3000000 },
       free: { total: 100, resetHours: 5, rpm: 30, tpm: 350000 }
-    },
-    defaultSimulatedUsage: 35.0,
-    defaultSimulatedWeeklyUsage: 40.0
+    }
   },
   {
     id: 'gemini-3.5-flash-high',
@@ -121,9 +121,7 @@ const ANTIGRAVITY_MODELS = [
       pro: { total: 100, resetHours: 5, rpm: 150, tpm: 2000000 },
       ultra: { total: 100, resetHours: 5, rpm: 350, tpm: 4000000 },
       free: { total: 100, resetHours: 5, rpm: 50, tpm: 500000 }
-    },
-    defaultSimulatedUsage: 45.0,
-    defaultSimulatedWeeklyUsage: 42.0
+    }
   },
   {
     id: 'gemini-3.5-flash-med',
@@ -145,9 +143,7 @@ const ANTIGRAVITY_MODELS = [
       pro: { total: 100, resetHours: 5, rpm: 100, tpm: 1500000 },
       ultra: { total: 100, resetHours: 5, rpm: 250, tpm: 3500000 },
       free: { total: 100, resetHours: 5, rpm: 35, tpm: 400000 }
-    },
-    defaultSimulatedUsage: 30.0,
-    defaultSimulatedWeeklyUsage: 32.0
+    }
   },
   {
     id: 'gemini-3.5-flash-low',
@@ -169,9 +165,7 @@ const ANTIGRAVITY_MODELS = [
       pro: { total: 100, resetHours: 5, rpm: 80, tpm: 1000000 },
       ultra: { total: 100, resetHours: 5, rpm: 180, tpm: 2500000 },
       free: { total: 100, resetHours: 5, rpm: 25, tpm: 250000 }
-    },
-    defaultSimulatedUsage: 15.0,
-    defaultSimulatedWeeklyUsage: 20.0
+    }
   },
   {
     id: 'gemini-3.1-pro-high',
@@ -193,9 +187,7 @@ const ANTIGRAVITY_MODELS = [
       pro: { total: 100, resetHours: 5, rpm: 60, tpm: 1000000 },
       ultra: { total: 100, resetHours: 5, rpm: 150, tpm: 3000000 },
       free: { total: 100, resetHours: 5, rpm: 20, tpm: 300000 }
-    },
-    defaultSimulatedUsage: 82.0,
-    defaultSimulatedWeeklyUsage: 68.0
+    }
   },
   {
     id: 'gemini-3.1-pro-low',
@@ -217,9 +209,7 @@ const ANTIGRAVITY_MODELS = [
       pro: { total: 100, resetHours: 5, rpm: 40, tpm: 800000 },
       ultra: { total: 100, resetHours: 5, rpm: 100, tpm: 2000000 },
       free: { total: 100, resetHours: 5, rpm: 12, tpm: 200000 }
-    },
-    defaultSimulatedUsage: 60.0,
-    defaultSimulatedWeeklyUsage: 50.0
+    }
   },
   {
     id: 'claude-sonnet-4.6',
@@ -241,9 +231,7 @@ const ANTIGRAVITY_MODELS = [
       pro: { total: 100, resetHours: 5, rpm: 40, tpm: 600000 },
       ultra: { total: 100, resetHours: 5, rpm: 100, tpm: 2000000 },
       free: { total: 100, resetHours: 5, rpm: 15, tpm: 150000 }
-    },
-    defaultSimulatedUsage: 100.0,
-    defaultSimulatedWeeklyUsage: 58.0
+    }
   },
   {
     id: 'claude-opus-4.6',
@@ -265,9 +253,7 @@ const ANTIGRAVITY_MODELS = [
       pro: { total: 100, resetHours: 5, rpm: 25, tpm: 400000 },
       ultra: { total: 100, resetHours: 5, rpm: 60, tpm: 1200000 },
       free: { total: 100, resetHours: 5, rpm: 10, tpm: 100000 }
-    },
-    defaultSimulatedUsage: 100.0,
-    defaultSimulatedWeeklyUsage: 58.0
+    }
   },
   {
     id: 'gpt-oss-120b-med',
@@ -289,9 +275,7 @@ const ANTIGRAVITY_MODELS = [
       pro: { total: 100, resetHours: 5, rpm: 80, tpm: 1000000 },
       ultra: { total: 100, resetHours: 5, rpm: 200, tpm: 3000000 },
       free: { total: 100, resetHours: 5, rpm: 30, tpm: 300000 }
-    },
-    defaultSimulatedUsage: 100.0,
-    defaultSimulatedWeeklyUsage: 58.0
+    }
   }
 ];
 

@@ -1,17 +1,54 @@
 /**
  * Antigravity Quotas & Token Monitor Desktop Application Renderer
- * 100% Aligned with Official Antigravity IDE Settings Screen (image_00a58d.png).
- * Features 2 Official Model Groups ('Gemini Models' & 'Claude and GPT models'),
- * Rolling Weekly Sliding Windows, 5-Hour Refresh Timers, and AI Credit Overages.
+ *
+ * -----------------------------------------------------------------------
+ * WHAT CHANGED IN THIS PASS (read this before assuming any number is real)
+ * -----------------------------------------------------------------------
+ * 1. Usage % and reset timers are now tracked ONCE PER SHARED POOL
+ *    ('gemini_models' / 'claude_gpt_models'), not once per model. The
+ *    previous version gave every model in the same pool a different fake
+ *    percentage even though the app's own copy says a pool shares one
+ *    5-hour limit and one weekly limit - that was self-contradictory.
+ *
+ * 2. There is no more auto-generated fake data. On first run every number
+ *    is "unset" (shown as "—") until you either:
+ *      a) successfully live-sync from a running Antigravity IDE, or
+ *      b) type the real numbers you see in Antigravity's own
+ *         Settings > Models screen into the manual-entry fields.
+ *    Manual entry is the reliable path. Live sync is best-effort - see the
+ *    big comment above syncLiveIDETelemetry() for why it may never
+ *    connect on your machine, and don't take a "Standalone" status as a
+ *    bug; it's the honest default.
+ *
+ * 3. The token estimator now uses real OpenAI-family BPE tokenizers
+ *    (cl100k_base, o200k_base) via preload.js + the `gpt-tokenizer`
+ *    package, instead of a made-up linear formula. It's still only an
+ *    approximation for Gemini/Claude, who don't publish their tokenizer -
+ *    the UI says so.
  */
 
 let currentPlan = localStorage.getItem('ag_plan') || 'pro';
 let activeFilter = 'all';
 let searchQuery = '';
-let simulatedUsage = JSON.parse(localStorage.getItem('ag_simulated_usage') || '{}');
-let simulatedWeeklyUsage = JSON.parse(localStorage.getItem('ag_simulated_weekly_usage') || '{}');
-let renewalTimestamps = JSON.parse(localStorage.getItem('ag_renewal_timestamps') || '{}');
-let weeklyRenewalTimestamps = JSON.parse(localStorage.getItem('ag_weekly_renewal_timestamps') || '{}');
+
+const DEFAULT_GROUP_STATE = () => ({
+  gemini_models: { weeklyPct: null, fiveHrPct: null, weeklyResetAt: null, fiveHrResetAt: null, source: 'unset', lastSyncedAt: null },
+  claude_gpt_models: { weeklyPct: null, fiveHrPct: null, weeklyResetAt: null, fiveHrResetAt: null, source: 'unset', lastSyncedAt: null }
+});
+
+let groupState = (() => {
+  try {
+    const saved = JSON.parse(localStorage.getItem('ag_group_state'));
+    if (saved && saved.gemini_models && saved.claude_gpt_models) return saved;
+  } catch (err) { /* fall through to defaults */ }
+  return DEFAULT_GROUP_STATE();
+})();
+
+function saveGroupState() {
+  localStorage.setItem('ag_group_state', JSON.stringify(groupState));
+}
+
+const POOL_IDS = ['gemini_models', 'claude_gpt_models'];
 
 const planSelect = document.getElementById('planSelect');
 const sidebarTierLabel = document.getElementById('sidebarTierLabel');
@@ -53,15 +90,19 @@ const modalBody = document.getElementById('modalBody');
 
 document.addEventListener('DOMContentLoaded', () => {
   initDesktopControls();
-  initRenewalTimestamps();
-  initSimulatedUsage();
   initEventListeners();
+  initManualEntryControls();
 
   planSelect.value = currentPlan;
   detectSubscriptionPlan();
   renderAll();
 
-  // Real-Time Telemetry Loop (1000ms)
+  // Try a live sync immediately, then retry periodically. This never
+  // overwrites data with fake numbers - see syncLiveIDETelemetry().
+  syncLiveIDETelemetry();
+  setInterval(syncLiveIDETelemetry, 10000);
+
+  // Visual-only tick (countdown timers, etc). Does NOT invent new data.
   setInterval(tickTelemetry, 1000);
 });
 
@@ -76,111 +117,261 @@ function initDesktopControls() {
 function detectSubscriptionPlan() {
   const planInfo = ANTIGRAVITY_PLANS[currentPlan];
   if (detectedPlanTitle) detectedPlanTitle.textContent = planInfo.name;
-  if (detectedPlanDesc) detectedPlanDesc.textContent = `${planInfo.badge} • Active Antigravity License`;
+  if (detectedPlanDesc) detectedPlanDesc.textContent = `${planInfo.badge} • Antigravity License (selected manually below - not auto-detected)`;
   if (bannerPlanName) bannerPlanName.textContent = planInfo.name;
-  if (bannerPlanBadge) bannerPlanBadge.textContent = 'ACTIVE ' + planInfo.id.toUpperCase();
-}/**
- * CONNECT TO LIVE RUNNING ANTIGRAVITY IDE PROCESS VIA DEVTOOLS WS PROTOCOL
- * Multi-port scanner (50836, 9222, 9229) for seamless GitHub clone compatibility.
+  if (bannerPlanBadge) bannerPlanBadge.textContent = 'PLAN: ' + planInfo.id.toUpperCase();
+}
+
+/**
+ * ---------------------------------------------------------------------
+ * LIVE IDE SYNC - READ THIS BEFORE TRUSTING A "Live Synced" STATUS
+ * ---------------------------------------------------------------------
+ * This scans a few common Chrome DevTools Protocol (CDP) ports on
+ * localhost, and if Antigravity (an Electron/VS Code-based app) happens
+ * to be running with a remote-debugging port open, it asks the page for
+ * its visible text and tries to parse the quota screen out of it.
+ *
+ * Important limitations, stated plainly:
+ *  - Most Electron/VS Code-based apps do NOT expose a CDP port unless
+ *    they were launched with a flag like --remote-debugging-port=9222.
+ *    If Antigravity wasn't started that way, every attempt below will
+ *    simply fail to connect - that's expected, not a bug, and this
+ *    build cannot force Antigravity to open that port for you.
+ *  - Even when connected, parseAndApplyIDEText() below is a best-effort
+ *    text parser written from the phrases visible in the app's own
+ *    screenshots/README, NOT verified against Antigravity's real DOM
+ *    output (no live instance was available while writing this). If
+ *    Antigravity's actual wording or layout differs, the regexes may
+ *    need adjusting - check the browser DevTools console for
+ *    "[antigravity-sync]" log lines if percentages look wrong.
+ *  - This never fabricates a percentage. If nothing parses, the UI keeps
+ *    showing "—" / your last manual entry instead of a guess.
  */
 async function syncLiveIDETelemetry() {
-  const portsToScan = [50836, 9222, 9229];
-  let connected = false;
+  const portsToScan = [9222, 9229, 50836];
+  let connectedAny = false;
 
   for (const port of portsToScan) {
     try {
-      const res = await fetch(`http://127.0.0.1:${port}/json/list`);
-      if (!res.ok) continue;
+      const res = await fetchWithTimeout(`http://127.0.0.1:${port}/json/list`, 800);
+      if (!res || !res.ok) continue;
       const list = await res.json();
-      const target = list.find(t => t.url.includes('settingsScreen=Models') || t.title.includes('Statistics') || t.type === 'page');
+      const target = list.find(t => t.type === 'page' && t.webSocketDebuggerUrl);
       if (!target) continue;
 
-      const ws = new WebSocket(target.webSocketDebuggerUrl);
-      ws.onopen = () => {
-        ws.send(JSON.stringify({
-          id: 1,
-          method: 'Runtime.evaluate',
-          params: {
-            expression: 'document.body.innerText',
-            returnByValue: true
-          }
-        }));
-      };
-      ws.onmessage = (evt) => {
-        const resp = JSON.parse(evt.data);
-        if (resp.id === 1 && resp.result && resp.result.result && resp.result.result.value) {
-          parseAndApplyIDEText(resp.result.result.value);
-          updateStatusPill(true, `Live Sync (Port ${port})`);
+      const text = await readPageTextViaCDP(target.webSocketDebuggerUrl, 2000);
+      if (text) {
+        const parsed = parseAndApplyIDEText(text);
+        if (parsed) {
+          connectedAny = true;
+          updateStatusPill('live', `Live Synced (port ${port})`);
+          renderAll();
         }
-        ws.close();
-      };
-      connected = true;
-      break;
+      }
     } catch (err) {
-      // Try next port
+      // Try the next port silently - this is expected on most machines.
     }
   }
 
-  if (!connected) {
-    updateStatusPill(false, 'Standalone Mode (Open IDE to Sync)');
+  if (!connectedAny) {
+    const anyManual = POOL_IDS.some(id => groupState[id].source === 'manual');
+    const anyData = POOL_IDS.some(id => groupState[id].source !== 'unset');
+    if (anyManual) {
+      updateStatusPill('manual', 'Standalone Mode (Manual Data)');
+    } else if (!anyData) {
+      updateStatusPill('offline', 'Standalone Mode (No Data Yet)');
+    }
   }
 }
 
-function updateStatusPill(isLive, text) {
-  const statusDot = document.querySelector('.status-dot');
+function fetchWithTimeout(url, ms) {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(t));
+}
+
+function readPageTextViaCDP(wsUrl, timeoutMs) {
+  return new Promise((resolve) => {
+    let settled = false;
+    let ws;
+    const timer = setTimeout(() => {
+      if (!settled) { settled = true; try { ws && ws.close(); } catch (e) {} resolve(null); }
+    }, timeoutMs);
+
+    try {
+      ws = new WebSocket(wsUrl);
+    } catch (err) {
+      clearTimeout(timer);
+      resolve(null);
+      return;
+    }
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({
+        id: 1,
+        method: 'Runtime.evaluate',
+        params: { expression: 'document.body.innerText', returnByValue: true }
+      }));
+    };
+    ws.onmessage = (evt) => {
+      if (settled) return;
+      try {
+        const resp = JSON.parse(evt.data);
+        if (resp.id === 1) {
+          settled = true;
+          clearTimeout(timer);
+          const value = resp.result && resp.result.result && resp.result.result.value;
+          ws.close();
+          resolve(value || null);
+        }
+      } catch (err) {
+        settled = true;
+        clearTimeout(timer);
+        try { ws.close(); } catch (e) {}
+        resolve(null);
+      }
+    };
+    ws.onerror = () => {
+      if (!settled) { settled = true; clearTimeout(timer); resolve(null); }
+    };
+  });
+}
+
+/**
+ * Best-effort parse of the IDE's "Model Quota" screen text into our
+ * two-pool state. See the big caveat comment above syncLiveIDETelemetry.
+ * Returns true if it found at least one usable number.
+ */
+function parseAndApplyIDEText(text) {
+  if (!text || typeof text !== 'string') return false;
+
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const pctRegex = /(\d{1,3})\s?%/;
+  const timeRegex = /refresh(?:es)?[^.\n]*?in\s+(?:(\d+)\s*hours?)?[,\s]*(?:(\d+)\s*minutes?)?/i;
+
+  let currentPool = null;
+  let found = false;
+  const now = Date.now();
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (/gemini models/i.test(line)) { currentPool = 'gemini_models'; continue; }
+    if (/claude and gpt models/i.test(line)) { currentPool = 'claude_gpt_models'; continue; }
+    if (!currentPool) continue;
+
+    const isWeekly = /weekly limit/i.test(line);
+    const isFiveHr = /five[\s-]?hour limit|5[\s-]?hour limit/i.test(line);
+    if (!isWeekly && !isFiveHr) continue;
+
+    let pct = null;
+    let resetMs = null;
+    for (let j = i; j < Math.min(lines.length, i + 4); j++) {
+      if (pct === null) {
+        const pm = lines[j].match(pctRegex);
+        if (pm) pct = Math.max(0, Math.min(100, parseInt(pm[1], 10)));
+      }
+      if (resetMs === null) {
+        const tm = lines[j].match(timeRegex);
+        if (tm) {
+          const hrs = parseInt(tm[1] || '0', 10);
+          const mins = parseInt(tm[2] || '0', 10);
+          if (hrs || mins) resetMs = now + (hrs * 3600 + mins * 60) * 1000;
+        }
+      }
+    }
+
+    if (pct !== null) {
+      found = true;
+      const g = groupState[currentPool];
+      if (isWeekly) {
+        g.weeklyPct = pct;
+        if (resetMs) g.weeklyResetAt = resetMs;
+      } else {
+        g.fiveHrPct = pct;
+        if (resetMs) g.fiveHrResetAt = resetMs;
+      }
+      g.source = 'live';
+      g.lastSyncedAt = now;
+    }
+  }
+
+  if (found) saveGroupState();
+  else console.log('[antigravity-sync] connected to a CDP target but did not recognize its layout - see parseAndApplyIDEText().');
+  return found;
+}
+
+function updateStatusPill(kind, text) {
+  const statusDot = document.getElementById('statusDot') || document.querySelector('.status-dot');
   const statusText = document.getElementById('statusText');
   if (statusDot) {
-    statusDot.className = isLive ? 'status-dot online' : 'status-dot offline';
+    statusDot.className = `status-dot ${kind === 'live' ? 'online' : (kind === 'manual' ? 'stale' : 'offline')}`;
   }
-  if (statusText) {
-    statusText.textContent = text;
-  }
+  if (statusText) statusText.textContent = text;
 }
 
-function initRenewalTimestamps() {
-  const now = Date.now();
-  let modified = false;
-  ANTIGRAVITY_MODELS.forEach(m => {
-    // 5-Hour Sprint Reset Timer
-    if (!renewalTimestamps[m.id] || renewalTimestamps[m.id] <= now) {
-      const randomOffsetMs = Math.floor(Math.random() * (3 * 3600 * 1000));
-      renewalTimestamps[m.id] = now + (5 * 3600 * 1000) - randomOffsetMs;
-      modified = true;
-    }
-    // Weekly Rolling Window Reset Timer
-    if (!weeklyRenewalTimestamps[m.id] || weeklyRenewalTimestamps[m.id] <= now) {
-      const randomOffsetWeeklyMs = Math.floor(Math.random() * (4 * 3600 * 1000));
-      weeklyRenewalTimestamps[m.id] = now + (4.95 * 3600 * 1000) - randomOffsetWeeklyMs;
-      modified = true;
-    }
-  });
-  if (modified) {
-    localStorage.setItem('ag_renewal_timestamps', JSON.stringify(renewalTimestamps));
-    localStorage.setItem('ag_weekly_renewal_timestamps', JSON.stringify(weeklyRenewalTimestamps));
-  }
+/**
+ * MANUAL ENTRY - the honest, reliable path: type in what Antigravity's
+ * own Settings > Models screen shows you.
+ */
+function initManualEntryControls() {
+  wireManualPool('gemini', 'gemini_models');
+  wireManualPool('claude', 'claude_gpt_models');
+  reflectManualInputs();
 }
 
-function initSimulatedUsage() {
-  let modified = false;
-  ANTIGRAVITY_MODELS.forEach(m => {
-    if (simulatedUsage[m.id] === undefined) {
-      simulatedUsage[m.id] = m.defaultSimulatedUsage || 75.0;
-      modified = true;
-    }
-    if (simulatedWeeklyUsage[m.id] === undefined) {
-      simulatedWeeklyUsage[m.id] = m.defaultSimulatedWeeklyUsage || 60.0;
-      modified = true;
+function wireManualPool(prefix, poolId) {
+  const btn = document.getElementById(`${prefix}ManualSave`);
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const weeklyPct = document.getElementById(`${prefix}WeeklyInput`).value;
+    const fiveHrPct = document.getElementById(`${prefix}5hrInput`).value;
+    const weeklyHrs = document.getElementById(`${prefix}WeeklyResetHrsInput`).value;
+    const fiveHrHrs = document.getElementById(`${prefix}5hrResetHrsInput`).value;
+
+    const g = groupState[poolId];
+    const now = Date.now();
+    let changed = false;
+
+    if (weeklyPct !== '') { g.weeklyPct = clampPct(weeklyPct); changed = true; }
+    if (fiveHrPct !== '') { g.fiveHrPct = clampPct(fiveHrPct); changed = true; }
+    if (weeklyHrs !== '') { g.weeklyResetAt = now + parseFloat(weeklyHrs) * 3600000; changed = true; }
+    if (fiveHrHrs !== '') { g.fiveHrResetAt = now + parseFloat(fiveHrHrs) * 3600000; changed = true; }
+
+    if (changed) {
+      g.source = 'manual';
+      saveGroupState();
+      renderAll();
     }
   });
-  if (modified) {
-    localStorage.setItem('ag_simulated_usage', JSON.stringify(simulatedUsage));
-    localStorage.setItem('ag_simulated_weekly_usage', JSON.stringify(simulatedWeeklyUsage));
-  }
+}
+
+function clampPct(val) {
+  const n = parseFloat(val);
+  if (isNaN(n)) return null;
+  return Math.max(0, Math.min(100, n));
+}
+
+function reflectManualInputs() {
+  ['gemini', 'claude'].forEach((prefix) => {
+    const poolId = prefix === 'gemini' ? 'gemini_models' : 'claude_gpt_models';
+    const g = groupState[poolId];
+    const now = Date.now();
+    const weeklyEl = document.getElementById(`${prefix}WeeklyInput`);
+    const fiveHrEl = document.getElementById(`${prefix}5hrInput`);
+    if (weeklyEl && g.weeklyPct !== null) weeklyEl.value = g.weeklyPct;
+    if (fiveHrEl && g.fiveHrPct !== null) fiveHrEl.value = g.fiveHrPct;
+    const weeklyHrsEl = document.getElementById(`${prefix}WeeklyResetHrsInput`);
+    const fiveHrHrsEl = document.getElementById(`${prefix}5hrResetHrsInput`);
+    if (weeklyHrsEl && g.weeklyResetAt) weeklyHrsEl.value = (Math.max(0, g.weeklyResetAt - now) / 3600000).toFixed(1);
+    if (fiveHrHrsEl && g.fiveHrResetAt) fiveHrHrsEl.value = (Math.max(0, g.fiveHrResetAt - now) / 3600000).toFixed(1);
+  });
 }
 
 function formatNumber(num) { return new Intl.NumberFormat('en-US').format(Math.floor(num)); }
 
 function formatHoursMinutes(ms) {
+  if (ms === null || ms === undefined) return 'Unknown (not synced/entered)';
   if (ms <= 0) return '0 minutes';
   const totalSecs = Math.floor(ms / 1000);
   const hours = Math.floor(totalSecs / 3600);
@@ -190,6 +381,7 @@ function formatHoursMinutes(ms) {
 }
 
 function formatCountdown(ms) {
+  if (ms === null || ms === undefined) return 'Not set';
   if (ms <= 0) return '00h 00m 00s (Resetting...)';
   const totalSecs = Math.floor(ms / 1000);
   const hours = Math.floor(totalSecs / 3600);
@@ -208,75 +400,55 @@ function updatePlanDisplay() {
 }
 
 /**
- * UPDATE OFFICIAL IDE QUOTA CARDS (image_00a58d.png)
- * Calculates exact percentages and subtext for Gemini Models vs Claude and GPT models.
+ * UPDATE OFFICIAL IDE QUOTA CARDS - reads the two shared-pool states
+ * directly. No per-model averaging: a pool has exactly one number.
  */
 function renderSummaryStats() {
   const now = Date.now();
 
-  // Gemini Models Group
-  const geminiModels = ANTIGRAVITY_MODELS.filter(m => m.sharedPool === 'gemini_models');
-  const geminiWeeklyAvg = geminiModels.reduce((acc, m) => acc + (simulatedWeeklyUsage[m.id] || 68), 0) / geminiModels.length;
-  const gemini5hrAvg = geminiModels.reduce((acc, m) => acc + (simulatedUsage[m.id] || 82), 0) / geminiModels.length;
-  const gemini5hrMs = Math.max(0, (renewalTimestamps['gemini-3.1-pro-high'] || now) - now);
-  const geminiWeeklyMs = Math.max(0, (weeklyRenewalTimestamps['gemini-3.1-pro-high'] || now) - now);
+  renderPoolCard('gemini', groupState.gemini_models, now);
+  renderPoolCard('claude', groupState.claude_gpt_models, now);
+}
 
-  const gWBar = document.getElementById('geminiWeeklyBar');
-  const gWPct = document.getElementById('geminiWeeklyPct');
-  const gWDesc = document.getElementById('geminiWeeklyDesc');
+function renderPoolCard(prefix, g, now) {
+  const weeklyMs = g.weeklyResetAt ? Math.max(0, g.weeklyResetAt - now) : null;
+  const fiveHrMs = g.fiveHrResetAt ? Math.max(0, g.fiveHrResetAt - now) : null;
 
-  if (gWBar) gWBar.style.width = `${geminiWeeklyAvg.toFixed(0)}%`;
-  if (gWPct) gWPct.textContent = `${geminiWeeklyAvg.toFixed(0)}%`;
-  if (gWDesc) gWDesc.textContent = `You have used some of your weekly limit, it will fully refresh in ${formatHoursMinutes(geminiWeeklyMs)}.`;
+  const wBar = document.getElementById(`${prefix}WeeklyBar`);
+  const wPct = document.getElementById(`${prefix}WeeklyPct`);
+  const wDesc = document.getElementById(`${prefix}WeeklyDesc`);
+  const fBar = document.getElementById(`${prefix}5hrBar`);
+  const fPct = document.getElementById(`${prefix}5hrPct`);
+  const fDesc = document.getElementById(`${prefix}5hrDesc`);
+  const tag = document.getElementById(`${prefix === 'gemini' ? 'geminiSourceTag' : 'claudeSourceTag'}`);
 
-  const g5Bar = document.getElementById('gemini5hrBar');
-  const g5Pct = document.getElementById('gemini5hrPct');
-  const g5Desc = document.getElementById('gemini5hrDesc');
-
-  if (g5Bar) g5Bar.style.width = `${gemini5hrAvg.toFixed(0)}%`;
-  if (g5Pct) g5Pct.textContent = `${gemini5hrAvg.toFixed(0)}%`;
-  if (g5Desc) g5Desc.textContent = `You have used some of your 5-hour limit, it will fully refresh in ${formatHoursMinutes(gemini5hrMs)}.`;
-
-  // Claude and GPT Models Group
-  const claudeModels = ANTIGRAVITY_MODELS.filter(m => m.sharedPool === 'claude_gpt_models');
-  const claudeWeeklyAvg = claudeModels.reduce((acc, m) => acc + (simulatedWeeklyUsage[m.id] || 58), 0) / claudeModels.length;
-  const claude5hrUsedAvg = claudeModels.reduce((acc, m) => acc + (simulatedUsage[m.id] || 100), 0) / claudeModels.length;
-  const claude5hrRemaining = Math.max(0, 100 - claude5hrUsedAvg);
-  const claude5hrMs = Math.max(0, (renewalTimestamps['claude-opus-4.6'] || now) - now);
-
-  const cWBar = document.getElementById('claudeWeeklyBar');
-  const cWPct = document.getElementById('claudeWeeklyPct');
-  const cWDesc = document.getElementById('claudeWeeklyDesc');
-
-  if (cWBar) cWBar.style.width = `${claudeWeeklyAvg.toFixed(0)}%`;
-  if (cWPct) cWPct.textContent = `${claudeWeeklyAvg.toFixed(0)}%`;
-  if (cWDesc) cWDesc.textContent = `You have hit your 5-hour limit, so the weekly limit does not currently apply. Your 5-hour limit will refresh in ${formatHoursMinutes(claude5hrMs)}.`;
-
-  const c5Bar = document.getElementById('claude5hrBar');
-  const c5Pct = document.getElementById('claude5hrPct');
-  const c5Desc = document.getElementById('claude5hrDesc');
-
-  if (c5Bar) {
-    c5Bar.style.width = `${claude5hrRemaining.toFixed(0)}%`;
-    c5Bar.style.background = claude5hrRemaining <= 5 ? '#ef4444' : '#10b981';
+  if (wBar) wBar.style.width = `${g.weeklyPct ?? 0}%`;
+  if (wPct) wPct.textContent = g.weeklyPct === null ? '—' : `${g.weeklyPct.toFixed(0)}%`;
+  if (wDesc) {
+    wDesc.textContent = g.weeklyPct === null
+      ? 'No usage data yet. Sync Antigravity IDE or enter it manually below.'
+      : `You have used some of your weekly limit. It will fully refresh in ${formatHoursMinutes(weeklyMs)}.`;
   }
-  if (c5Pct) {
-    c5Pct.textContent = `${claude5hrRemaining.toFixed(0)}%`;
-    c5Pct.className = claude5hrRemaining <= 5 ? 'ide-limit-pct text-danger' : 'ide-limit-pct';
+
+  if (fBar) fBar.style.width = `${g.fiveHrPct ?? 0}%`;
+  if (fPct) fPct.textContent = g.fiveHrPct === null ? '—' : `${g.fiveHrPct.toFixed(0)}%`;
+  if (fDesc) {
+    fDesc.textContent = g.fiveHrPct === null
+      ? 'No usage data yet. Sync Antigravity IDE or enter it manually below.'
+      : (g.fiveHrPct >= 98
+        ? `You have hit your 5-hour limit. It will refresh in ${formatHoursMinutes(fiveHrMs)}. If on a supported paid plan, you can use AI credits in the interim.`
+        : `You have used some of your 5-hour limit. It will fully refresh in ${formatHoursMinutes(fiveHrMs)}.`);
   }
-  if (c5Desc) {
-    if (claude5hrRemaining <= 5) {
-      c5Desc.textContent = `You have hit your 5-hour limit, it will refresh in ${formatHoursMinutes(claude5hrMs)}. If on a supported paid plan, you can use AI credits in the interim.`;
-      c5Desc.className = 'ide-limit-desc text-warning';
-    } else {
-      c5Desc.textContent = `You have used some of your 5-hour limit, it will fully refresh in ${formatHoursMinutes(claude5hrMs)}.`;
-      c5Desc.className = 'ide-limit-desc';
-    }
+
+  if (tag) {
+    tag.textContent = g.source === 'live' ? 'Live synced' : (g.source === 'manual' ? 'Manual entry' : 'No data yet');
+    tag.className = `data-source-tag ${g.source === 'live' ? 'live' : (g.source === 'manual' ? 'manual' : '')}`;
   }
 }
 
 /**
- * RENDER MODELS GRID WITH 2 OFFICIAL GROUPS
+ * RENDER MODELS GRID - every model reads its shared pool's ONE set of
+ * numbers, instead of its own independently-faked percentage.
  */
 function renderModelsGrid() {
   modelsGrid.innerHTML = '';
@@ -294,15 +466,17 @@ function renderModelsGrid() {
   });
 
   modelCountLabel.textContent = filtered.length;
+  const now = Date.now();
 
   filtered.forEach(m => {
-    const used5hr = Math.min(100, Math.max(0, simulatedUsage[m.id] || 0));
-    const usedWeekly = Math.min(100, Math.max(0, simulatedWeeklyUsage[m.id] || 0));
-    const is5hrExhausted = used5hr >= 98;
+    const g = groupState[m.sharedPool];
+    const used5hr = g.fiveHrPct;
+    const usedWeekly = g.weeklyPct;
+    const hasData = used5hr !== null;
+    const is5hrExhausted = hasData && used5hr >= 98;
 
-    const now = Date.now();
-    const msLeft5hr = Math.max(0, (renewalTimestamps[m.id] || now) - now);
-    const msLeftWeekly = Math.max(0, (weeklyRenewalTimestamps[m.id] || now) - now);
+    const msLeft5hr = g.fiveHrResetAt ? Math.max(0, g.fiveHrResetAt - now) : null;
+    const msLeftWeekly = g.weeklyResetAt ? Math.max(0, g.weeklyResetAt - now) : null;
 
     const card = document.createElement('div');
     card.className = `model-card ${is5hrExhausted ? 'locked-out-card' : ''}`;
@@ -316,15 +490,15 @@ function renderModelsGrid() {
         </div>
         <h3 class="model-title">${m.name}</h3>
         <p class="model-desc">Shares <strong>${m.poolDisplayName}</strong>. ${m.description}</p>
-        
+
         <!-- FIVE HOUR LIMIT GAUGE -->
         <div class="quota-gauge-container">
           <div class="gauge-header">
             <span class="gauge-label">Five Hour Limit</span>
-            <span class="gauge-stats gauge-5hr-stats">${(100 - used5hr).toFixed(0)}% Capacity</span>
+            <span class="gauge-stats gauge-5hr-stats">${hasData ? (100 - used5hr).toFixed(0) + '% Capacity' : 'No data'}</span>
           </div>
           <div class="progress-bar-bg">
-            <div class="progress-bar-fill gauge-5hr-fill ${used5hr > 85 ? 'warning' : ''}" style="width: ${100 - used5hr}%; background: ${is5hrExhausted ? '#ef4444' : '#10b981'};"></div>
+            <div class="progress-bar-fill gauge-5hr-fill ${hasData && used5hr > 85 ? 'warning' : ''}" style="width: ${hasData ? 100 - used5hr : 0}%; background: ${is5hrExhausted ? '#ef4444' : '#10b981'};"></div>
           </div>
           <div class="gauge-footer">
             <span>Group: <strong>${m.poolDisplayName}</strong></span>
@@ -339,12 +513,12 @@ function renderModelsGrid() {
         <div class="quota-gauge-container" style="margin-bottom: 0;">
           <div class="gauge-header">
             <span class="gauge-label" style="color: #f59e0b;">Weekly Limit</span>
-            <span class="gauge-stats gauge-weekly-stats">${usedWeekly.toFixed(0)}% Used</span>
+            <span class="gauge-stats gauge-weekly-stats">${usedWeekly === null ? 'No data' : usedWeekly.toFixed(0) + '% Used'}</span>
           </div>
           <div class="progress-bar-bg baseline-bg">
-            <div class="progress-bar-fill baseline-fill gauge-weekly-fill" style="width: ${usedWeekly}%;"></div>
+            <div class="progress-bar-fill baseline-fill gauge-weekly-fill" style="width: ${usedWeekly ?? 0}%;"></div>
           </div>
-          
+
           <div class="gauge-footer" style="margin-top: 4px;">
             <span>Rolling Reset:</span>
             <div class="timer-pill weekly-timer-pill" style="border-color: rgba(245, 158, 11, 0.4); color: #fbbf24;">
@@ -355,7 +529,7 @@ function renderModelsGrid() {
 
           ${is5hrExhausted ? `
             <div class="lockout-warning-banner">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 3-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               <span>5-HOUR LIMIT HIT — Use AI Credits to continue</span>
             </div>
           ` : ''}
@@ -375,12 +549,15 @@ function renderRenewalsList() {
   renewalsList.innerHTML = '';
   const now = Date.now();
   const sorted = [...ANTIGRAVITY_MODELS].sort((a, b) => {
-    return ((renewalTimestamps[a.id] || now) - now) - ((renewalTimestamps[b.id] || now) - now);
+    const aMs = groupState[a.sharedPool].fiveHrResetAt ? groupState[a.sharedPool].fiveHrResetAt - now : Infinity;
+    const bMs = groupState[b.sharedPool].fiveHrResetAt ? groupState[b.sharedPool].fiveHrResetAt - now : Infinity;
+    return aMs - bMs;
   });
 
   sorted.forEach(m => {
-    const msLeft5hr = Math.max(0, (renewalTimestamps[m.id] || now) - now);
-    const msLeftWeekly = Math.max(0, (weeklyRenewalTimestamps[m.id] || now) - now);
+    const g = groupState[m.sharedPool];
+    const msLeft5hr = g.fiveHrResetAt ? Math.max(0, g.fiveHrResetAt - now) : null;
+    const msLeftWeekly = g.weeklyResetAt ? Math.max(0, g.weeklyResetAt - now) : null;
     const card = document.createElement('div');
     card.className = 'renewal-card';
     card.innerHTML = `
@@ -419,7 +596,8 @@ function renderSpecsTable() {
 }
 
 /**
- * REAL-TIME TELEMETRY LOOP (1000ms)
+ * VISUAL-ONLY TICK (1000ms) - re-renders from existing state so
+ * countdowns move. It does not invent or change any underlying data.
  */
 function tickTelemetry() {
   renderSummaryStats();
@@ -427,21 +605,41 @@ function tickTelemetry() {
   renderRenewalsList();
 }
 
+/**
+ * TOKEN ESTIMATOR - real BPE tokenizers via the Electron preload bridge.
+ * Falls back to a labeled heuristic ONLY if that bridge isn't available
+ * (e.g. running index.html outside Electron), and says so on-screen.
+ */
 function updateTokenEstimate() {
   const text = calcTextArea.value;
   const chars = text.length;
   const lines = text ? text.split('\n').length : 0;
   const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+
   let estTokens = 0;
+  let sourceLabel = 'No text entered yet.';
+
   if (text.length > 0) {
-    const symbolMatches = text.match(/[{}[\]();:,.<>/?!@#$%^&*+\-=/\\|'"`~]/g) || [];
-    estTokens = Math.max(1, Math.ceil((words * 1.32) + (symbolMatches.length * 0.65) + (lines * 0.2)));
+    const bridgeCounts = (window.electronAPI && typeof window.electronAPI.countTokens === 'function')
+      ? window.electronAPI.countTokens(text)
+      : null;
+
+    if (bridgeCounts && bridgeCounts.cl100k !== null && bridgeCounts.cl100k !== undefined) {
+      estTokens = bridgeCounts.cl100k;
+      sourceLabel = `Real BPE tokenizer — cl100k_base (GPT-4/3.5): ${formatNumber(bridgeCounts.cl100k)} tokens · o200k_base (GPT-4o): ${formatNumber(bridgeCounts.o200k)} tokens. Gemini/Claude approximate.`;
+    } else {
+      const symbolMatches = text.match(/[{}[\]();:,.<>/?!@#$%^&*+\-=/\\|'"`~]/g) || [];
+      estTokens = Math.max(1, Math.ceil((words * 1.32) + (symbolMatches.length * 0.65) + (lines * 0.2)));
+      sourceLabel = 'Fallback heuristic only (Electron tokenizer bridge unavailable) — treat as rough, not exact.';
+    }
   }
 
   calcCharCount.textContent = formatNumber(chars);
   calcWordCount.textContent = formatNumber(words);
   calcLineCount.textContent = formatNumber(lines);
   calcTokenCount.textContent = formatNumber(estTokens);
+  const labelEl = document.getElementById('calcTokenSourceLabel');
+  if (labelEl) labelEl.textContent = sourceLabel;
 
   calcModelBars.innerHTML = '';
   ANTIGRAVITY_MODELS.forEach(m => {
@@ -495,38 +693,42 @@ function appendChatMessage(sender, author, text) {
 }
 
 /**
- * AI CHATBOT ENGINE - VERBATIM QUOTES FROM OFFICIAL IDE SETTINGS SCREEN
+ * RULE-BASED FAQ ENGINE (keyword matching against a fixed set of topics).
+ * This is NOT a language model - it cannot answer arbitrary questions,
+ * despite what the old copy implied. Renamed/labeled honestly in the UI.
  */
 function generateAIResponse(userText) {
   const q = userText.toLowerCase();
 
   if (q.includes('group') || q.includes('claude and gpt') || q.includes('gemini models') || q.includes('shared')) {
-    return `<strong>Official Antigravity IDE Model Groups (Settings > Models):</strong><br><br>` +
-      `<em>&ldquo;Within each group, models share a weekly limit and a 5-hour limit. Quota is consumed proportionally to the cost of the tokens. Thus, limits will last longer with shorter tasks or using more cost-effective models.&rdquo;</em><br><br>` +
-      `The 2 official groups are:<br>` +
+    return `<strong>Antigravity's documented model groups (Settings > Models):</strong><br><br>` +
+      `Within each group, models share one weekly limit and one 5-hour limit, and quota is consumed proportionally to token cost - so limits last longer with shorter tasks or cheaper models.<br><br>` +
+      `The 2 groups are:<br>` +
       `1. <strong>Gemini Models:</strong> Shares Gemini Flash &amp; Gemini Pro models.<br>` +
-      `2. <strong>Claude and GPT models:</strong> Shares Claude Sonnet 4.6, Claude Opus 4.6, AND GPT-OSS 120B!`;
+      `2. <strong>Claude and GPT models:</strong> Shares Claude Sonnet 4.6, Claude Opus 4.6, and GPT-OSS 120B.<br><br>` +
+      `<em>Note: this app cannot independently verify these figures against your live Antigravity account unless you sync or enter your real numbers - it's repeating documented behavior, not something it measured.</em>`;
   }
 
   if (q.includes('5-hour limit') || q.includes('five hour') || q.includes('credits') || q.includes('overage')) {
-    return `<strong>Official 5-Hour Limit Behavior (Settings > Models):</strong><br><br>` +
-      `When you exhaust a group's 5-hour limit, the settings screen reports:<br>` +
-      `<em>&ldquo;You have hit your 5-hour limit, so the weekly limit does not currently apply. Your 5-hour limit will refresh in 1 hour, 18 minutes. If on a supported paid plan, you can use AI credits in the interim.&rdquo;</em>`;
+    return `<strong>5-Hour Limit behavior (as documented in Antigravity's Settings > Models):</strong><br><br>` +
+      `When a group's 5-hour limit is exhausted, its weekly limit stops applying until the 5-hour limit refreshes. If you're on a paid plan, AI credits can cover you in the interim.<br><br>` +
+      `Check the "Model Quotas" tab in this app for your actual current numbers - manually entered or live-synced, not this FAQ.`;
   }
 
-  return `Regarding your query: <em>&ldquo;${userText}&rdquo;</em><br><br>` +
-    `According to the <strong>Official Antigravity IDE Settings screen</strong>:<br>` +
-    `&bull; Models are divided into two shared groups: <strong>Gemini Models</strong> and <strong>Claude and GPT models</strong>.<br>` +
-    `&bull; The 5-hour limit smooths out aggregate demand, while the weekly limit is a dynamic rolling sliding window.<br>` +
-    `&bull; Type <code>/usage</code> in your IDE terminal or visit <strong>Agent Manager &gt; Settings &gt; Models</strong> to see your live ring progress meters.`;
+  return `Regarding: <em>"${userText}"</em><br><br>` +
+    `I can only answer from a small fixed set of topics (I'm rule-based, not a live model):<br>` +
+    `&bull; Shared model pools (<strong>Gemini Models</strong> vs <strong>Claude and GPT models</strong>)<br>` +
+    `&bull; How the 5-hour limit and weekly limit interact<br>` +
+    `&bull; Where to find your real numbers: the "Model Quotas" tab, or Antigravity's own Settings &gt; Models screen.<br><br>` +
+    `Try one of the suggested questions on the left for a direct answer.`;
 }
 
 window.openModelModal = function (id) {
   const m = ANTIGRAVITY_MODELS.find(x => x.id === id);
   if (!m) return;
-  const q = m.quota[currentPlan];
+  const g = groupState[m.sharedPool];
   const now = Date.now();
-  const msLeftWeekly = Math.max(0, (weeklyRenewalTimestamps[m.id] || now) - now);
+  const msLeftWeekly = g.weeklyResetAt ? Math.max(0, g.weeklyResetAt - now) : null;
 
   modalBadge.textContent = m.provider;
   modalTitle.textContent = m.name;
@@ -548,7 +750,7 @@ window.openModelModal = function (id) {
       </div>
       <div class="modal-spec-row">
         <span class="modal-spec-label">5-Hour Refresh Cycle</span>
-        <span class="modal-spec-val">Rolling 5-Hour Limit</span>
+        <span class="modal-spec-val">Rolling 5-Hour Limit (shared across group)</span>
       </div>
       <div class="modal-spec-row">
         <span class="modal-spec-label">Weekly Rolling Reset</span>
@@ -585,7 +787,7 @@ function initEventListeners() {
     });
   });
 
-  document.getElementById('btnRefresh')?.addEventListener('click', () => { initRenewalTimestamps(); renderAll(); });
+  document.getElementById('btnRefresh')?.addEventListener('click', () => { syncLiveIDETelemetry(); });
   calcTextArea.addEventListener('input', updateTokenEstimate);
   btnUploadFile?.addEventListener('click', () => fileInput.click());
   fileInput?.addEventListener('change', (e) => {
@@ -626,4 +828,5 @@ function renderAll() {
   renderModelsGrid();
   renderRenewalsList();
   renderSpecsTable();
+  reflectManualInputs();
 }
