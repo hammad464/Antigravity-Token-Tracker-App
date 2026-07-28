@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Antigravity Quotas & Token Monitor</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Native Desktop Custom Window Titlebar -->
+  <div class="desktop-titlebar" id="titlebar">
+    <div class="titlebar-drag-area">
+      <div class="app-logo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#4F46E5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 17L12 22L22 17" stroke="#818CF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 12L12 17L22 12" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="app-title">ANTIGRAVITY</span>
+        <span class="app-subtitle">QUOTAS & TOKENS</span>
+      </div>
+      <div class="window-status-pill">
+        <span class="status-dot online"></span>
+        <span class="status-text" id="statusText">Active Subscription Sync</span>
+      </div>
+    </div>
+    <div class="window-controls">
+      <button class="control-btn minimize" id="btnMinimize" title="MinimizeWindow">
+        <svg width="12" height="12" viewBox="0 0 12 12"><rect x="2" y="5.5" width="8" height="1" fill="currentColor"/></svg>
+      </button>
+      <button class="control-btn maximize" id="btnMaximize" title="Maximize Window">
+        <svg width="12" height="12" viewBox="0 0 12 12"><rect x="2.5" y="2.5" width="7" height="7" stroke="currentColor" fill="none" stroke-width="1"/></svg>
+      </button>
+      <button class="control-btn close" id="btnClose" title="Close Application">
+        <svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="1.2"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Application Body Layout -->
+  <div class="app-container">
+    <!-- Left Navigation Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="plan-badge-container">
+          <span class="sidebar-section-title">ACTIVE PLAN</span>
+          <select id="planSelect" class="plan-selector">
+            <option value="pro" selected>Antigravity Pro</option>
+            <option value="ultra">Antigravity Ultra / Enterprise</option>
+            <option value="free">Antigravity Free / Community</option>
+          </select>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="dashboard">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+          <span>Model Quotas</span>
+        </button>
+        <button class="nav-item" data-tab="renewals">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span>Renewal Schedules</span>
+        </button>
+        <button class="nav-item" data-tab="calculator">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><path d="M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M8 18h.01M12 18h.01"/></svg>
+          <span>Token Estimator</span>
+        </button>
+        <button class="nav-item" data-tab="specs">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <span>Model Specs Matrix</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-profile-box">
+          <div class="avatar">AG</div>
+          <div class="user-info">
+            <span class="user-name">Antigravity IDE User</span>
+            <span class="user-tier-label" id="sidebarTierLabel">Pro Subscription</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top Action Bar & Filters -->
+      <header class="top-bar">
+        <div class="search-box">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="searchInput" placeholder="Search models (e.g. Gemini 3.6, Claude Thinking, 1M)...">
+        </div>
+
+        <div class="filter-group">
+          <button class="filter-chip active" data-filter="all">All Models (11)</button>
+          <button class="filter-chip" data-filter="gemini">Gemini</button>
+          <button class="filter-chip" data-filter="anthropic">Claude</button>
+          <button class="filter-chip" data-filter="fast">Fast Tiers</button>
+          <button class="filter-chip" data-filter="thinking">Thinking / Reasoning</button>
+        </div>
+
+        <button class="btn-refresh" id="btnRefresh" title="Simulate Quota Sync">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8M22 12.5a10 10 0 0 1-18.8 4.2L2.5 16"/></svg>
+          <span>Sync Quotas</span>
+        </button>
+      </header>
+
+      <!-- VIEW 1: DASHBOARD / MODEL QUOTAS -->
+      <section id="viewDashboard" class="view-panel active">
+        <!-- Summary Cards Grid -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon purple">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <div class="stat-details">
+              <span class="stat-label">Total Window Tokens</span>
+              <span class="stat-value" id="statTotalTokens">118,500,000</span>
+              <span class="stat-sub" id="statPlanName">Antigravity Pro Allowance</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon blue">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            </div>
+            <div class="stat-details">
+              <span class="stat-label">Tokens Consumed</span>
+              <span class="stat-value" id="statUsedTokens">31,590,000</span>
+              <span class="stat-sub"><span id="statUsagePercent">26.6%</span> of window allowance</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon green">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="stat-details">
+              <span class="stat-label">Next Global Reset</span>
+              <span class="stat-value countdown-glow" id="globalCountdown">03h 41m 20s</span>
+              <span class="stat-sub">5-Hour Rolling Reset Window</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon orange">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </div>
+            <div class="stat-details">
+              <span class="stat-label">Max Concurrency</span>
+              <span class="stat-value" id="statMaxRpm">300 RPM</span>
+              <span class="stat-sub">Requests Per Minute Pool</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section Title -->
+        <div class="section-header">
+          <h2>Available Subscription Models (<span id="modelCountLabel">11</span>)</h2>
+          <span class="section-subtitle">Real-time token availability, context boundaries, and rolling renewal timers</span>
+        </div>
+
+        <!-- Models Grid Container -->
+        <div class="models-grid" id="modelsGrid">
+          <!-- Dynamically populated by renderer.js -->
+        </div>
+      </section>
+
+      <!-- VIEW 2: RENEWAL SCHEDULES -->
+      <section id="viewRenewals" class="view-panel">
+        <div class="section-header">
+          <h2>Token Renewal Timers & Rolling Reset Cycles</h2>
+          <span class="section-subtitle">Detailed breakdown of when each model's token bucket will fully replenish</span>
+        </div>
+        <div class="renewals-container" id="renewalsList">
+          <!-- Dynamically populated -->
+        </div>
+      </section>
+
+      <!-- VIEW 3: TOKEN CALCULATOR -->
+      <section id="viewCalculator" class="view-panel">
+        <div class="section-header">
+          <h2>Interactive Token Estimator & Context Window Checker</h2>
+          <span class="section-subtitle">Paste prompt text or drag-and-drop local code files to verify model fit</span>
+        </div>
+
+        <div class="calculator-layout">
+          <div class="calc-input-card">
+            <div class="calc-card-header">
+              <h3>Input Prompt / Code Snippet</h3>
+              <div class="calc-actions">
+                <button class="btn-sm" id="btnSampleCode">Load Sample Codebase</button>
+                <button class="btn-sm text-danger" id="btnClearCalc">Clear</button>
+              </div>
+            </div>
+            <textarea id="calcTextArea" placeholder="Paste code, prompts, or doc files here to measure token occupancy across models..."></textarea>
+            <div class="drop-zone" id="dropZone">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span>Drag & drop files here to calculate token size</span>
+            </div>
+            <div class="calc-metrics-row">
+              <div class="calc-metric"><span class="metric-val" id="calcCharCount">0</span><span class="metric-label">Characters</span></div>
+              <div class="calc-metric"><span class="metric-val" id="calcWordCount">0</span><span class="metric-label">Words</span></div>
+              <div class="calc-metric highlight"><span class="metric-val" id="calcTokenCount">0</span><span class="metric-label">Est. Tokens</span></div>
+            </div>
+          </div>
+
+          <div class="calc-results-card">
+            <h3>Model Context Compatibility</h3>
+            <p class="calc-sub">See how much of each model's context window this input consumes:</p>
+            <div class="calc-model-bars" id="calcModelBars">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 4: MODEL SPECS MATRIX -->
+      <section id="viewSpecs" class="view-panel">
+        <div class="section-header">
+          <h2>Antigravity Model Capabilities & Specifications Matrix</h2>
+          <span class="section-subtitle">Comparative table of input/output token bounds, reasoning support, and rate limits</span>
+        </div>
+        <div class="table-card">
+          <table class="specs-table">
+            <thead>
+              <tr>
+                <th>Model Name</th>
+                <th>Provider</th>
+                <th>Speed / Tier</th>
+                <th>Context Window</th>
+                <th>Max Output</th>
+                <th>Reasoning</th>
+                <th>Pro Window Quota</th>
+                <th>Reset Cycle</th>
+              </tr>
+            </thead>
+            <tbody id="specsTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-card" id="modalCard">
+      <button class="modal-close" id="modalClose">&times;</button>
+      <div class="modal-header">
+        <div class="modal-badge" id="modalBadge">Google Gemini</div>
+        <h2 id="modalTitle">Gemini 3.6 Flash (High)</h2>
+        <span class="modal-subtitle" id="modalSubtitle">High Speed & Large Context Model</span>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <!-- Dynamically filled -->
+      </div>
+    </div>
+  </div>
+
+  <script src="modelsData.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>
