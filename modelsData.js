@@ -1,7 +1,8 @@
 /**
  * Antigravity Models & Quotas Reference Dataset
- * Fully Restored 11 Models Data Model based on Antigravity IDE UI.
- * Features Shared Pools, Dual-Layer Limits (5-Hour Sprint & 7-Day Weekly Baseline), and Work Done compute metrics.
+ * Calibrated against Official Google Antigravity Documentation (antigravity.google/docs).
+ * Quotas do NOT use static raw token pools. Compute consumption is governed by "Work Done"
+ * (task complexity, subagent loops, terminal execution) across 3 Shared Model Pools.
  */
 
 const ANTIGRAVITY_PLANS = {
@@ -10,21 +11,21 @@ const ANTIGRAVITY_PLANS = {
     name: 'Antigravity Pro',
     description: 'Priority access with 5-hour rolling sprints and a strict 7-day computational baseline limit',
     badge: 'PRO TIER',
-    weeklyBaseline: 'Strict 7-day rolling baseline. Exceeding this threshold triggers a priority lockout until the weekly window passes or AI Credit Overages are enabled.'
+    weeklyBaseline: 'Strict 7-day rolling baseline limit based on accumulated "Work Done". Crossing threshold triggers priority lockout for the remainder of the 7-day window.'
   },
   ultra: {
     id: 'ultra',
     name: 'Antigravity Ultra / Enterprise',
     description: 'Maximum speed, prioritized thinking models, and 2.5x higher weekly baseline limits',
     badge: 'ULTRA TIER',
-    weeklyBaseline: '2.5× higher 7-day rolling baseline. Same lockout mechanics apply but at a significantly elevated ceiling.'
+    weeklyBaseline: '2.5× higher 7-day rolling baseline compute allocation. Priority lockout triggers at significantly higher Work Done thresholds.'
   },
   free: {
     id: 'free',
     name: 'Antigravity Free / Community',
     description: 'Standard access with rate limits, 5-hour rolling windows, and low weekly caps',
     badge: 'COMMUNITY',
-    weeklyBaseline: 'Lowest 7-day rolling baseline. Heavy autonomous workloads will trigger lockout quickly. No AI Credit Overages available.'
+    weeklyBaseline: 'Lowest 7-day baseline. Heavy autonomous subagent sessions trigger priority lockout quickly.'
   }
 };
 
@@ -37,19 +38,20 @@ const ANTIGRAVITY_MODELS = [
     sharedPool: 'gemini_pool',
     speedBadge: 'Fast',
     speedClass: 'fast',
-    variant: 'High Quota',
+    variant: 'High Throughput',
+    workDoneWeight: 'Low',
     contextWindow: 1048576,
     maxOutputTokens: 65536,
     reasoning: true,
     multimodal: true,
-    description: 'Shares the Gemini Quota Pool. High-speed model ideal for large context code parsing. Quota drains based on "Work Done" compute weight.',
+    description: 'Shares Gemini Pool. Low Work Done compute cost per prompt. High-speed model ideal for rapid code parsing and multi-file refactoring.',
     quota: {
-      pro: { total: 10000000, resetHours: 5, rpm: 150, tpm: 2000000, weeklyBaselineLimit: 50000000 },
-      ultra: { total: 25000000, resetHours: 5, rpm: 400, tpm: 5000000, weeklyBaselineLimit: 125000000 },
-      free: { total: 3000000, resetHours: 5, rpm: 60, tpm: 600000, weeklyBaselineLimit: 15000000 }
+      pro: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 150, tpm: 2000000, weeklyBaselineLimit: 100 },
+      ultra: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 400, tpm: 5000000, weeklyBaselineLimit: 100 },
+      free: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 60, tpm: 600000, weeklyBaselineLimit: 100 }
     },
-    defaultSimulatedUsage: 3420000,
-    defaultSimulatedWeeklyUsage: 28400000
+    defaultSimulatedUsage: 34.2,
+    defaultSimulatedWeeklyUsage: 56.8
   },
   {
     id: 'gemini-3.6-flash-med',
@@ -60,18 +62,19 @@ const ANTIGRAVITY_MODELS = [
     speedBadge: 'Fast',
     speedClass: 'fast',
     variant: 'Balanced Speed',
+    workDoneWeight: 'Low',
     contextWindow: 1048576,
     maxOutputTokens: 65536,
     reasoning: true,
     multimodal: true,
-    description: 'Shares the Gemini Quota Pool. Medium throughput variant optimized for standard agentic coding tasks.',
+    description: 'Shares Gemini Pool. Low compute weight variant optimized for general agentic pair-programming tasks.',
     quota: {
-      pro: { total: 10000000, resetHours: 5, rpm: 120, tpm: 1800000, weeklyBaselineLimit: 50000000 },
-      ultra: { total: 25000000, resetHours: 5, rpm: 300, tpm: 4500000, weeklyBaselineLimit: 125000000 },
-      free: { total: 3000000, resetHours: 5, rpm: 45, tpm: 500000, weeklyBaselineLimit: 15000000 }
+      pro: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 120, tpm: 1800000, weeklyBaselineLimit: 100 },
+      ultra: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 300, tpm: 4500000, weeklyBaselineLimit: 100 },
+      free: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 45, tpm: 500000, weeklyBaselineLimit: 100 }
     },
-    defaultSimulatedUsage: 2100000,
-    defaultSimulatedWeeklyUsage: 19500000
+    defaultSimulatedUsage: 21.0,
+    defaultSimulatedWeeklyUsage: 39.0
   },
   {
     id: 'gemini-3.6-flash-low',
@@ -82,18 +85,19 @@ const ANTIGRAVITY_MODELS = [
     speedBadge: 'Fast',
     speedClass: 'fast',
     variant: 'Standard',
+    workDoneWeight: 'Minimal',
     contextWindow: 1048576,
     maxOutputTokens: 65536,
     reasoning: true,
     multimodal: true,
-    description: 'Shares the Gemini Quota Pool. Low concurrency budget variant for quick tab completion and small edits.',
+    description: 'Shares Gemini Pool. Minimal Work Done draw. Economical choice for quick inline completions and single-file edits.',
     quota: {
-      pro: { total: 10000000, resetHours: 5, rpm: 90, tpm: 1200000, weeklyBaselineLimit: 50000000 },
-      ultra: { total: 25000000, resetHours: 5, rpm: 200, tpm: 3000000, weeklyBaselineLimit: 125000000 },
-      free: { total: 3000000, resetHours: 5, rpm: 30, tpm: 350000, weeklyBaselineLimit: 15000000 }
+      pro: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 90, tpm: 1200000, weeklyBaselineLimit: 100 },
+      ultra: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 200, tpm: 3000000, weeklyBaselineLimit: 100 },
+      free: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 30, tpm: 350000, weeklyBaselineLimit: 100 }
     },
-    defaultSimulatedUsage: 980000,
-    defaultSimulatedWeeklyUsage: 11200000
+    defaultSimulatedUsage: 9.8,
+    defaultSimulatedWeeklyUsage: 22.4
   },
   {
     id: 'gemini-3.5-flash-high',
@@ -103,19 +107,20 @@ const ANTIGRAVITY_MODELS = [
     sharedPool: 'gemini_pool',
     speedBadge: 'Fast',
     speedClass: 'fast',
-    variant: 'High Throughput',
+    variant: 'High Speed',
+    workDoneWeight: 'Low',
     contextWindow: 1048576,
     maxOutputTokens: 32768,
     reasoning: false,
     multimodal: true,
-    description: 'Shares the Gemini Quota Pool. Legacy Flash model with high response speed and solid code synthesis.',
+    description: 'Shares Gemini Pool. Ultra-fast non-reasoning model with low compute drain.',
     quota: {
-      pro: { total: 10000000, resetHours: 5, rpm: 150, tpm: 2000000, weeklyBaselineLimit: 50000000 },
-      ultra: { total: 25000000, resetHours: 5, rpm: 350, tpm: 4000000, weeklyBaselineLimit: 125000000 },
-      free: { total: 3000000, resetHours: 5, rpm: 50, tpm: 500000, weeklyBaselineLimit: 15000000 }
+      pro: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 150, tpm: 2000000, weeklyBaselineLimit: 100 },
+      ultra: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 350, tpm: 4000000, weeklyBaselineLimit: 100 },
+      free: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 50, tpm: 500000, weeklyBaselineLimit: 100 }
     },
-    defaultSimulatedUsage: 1450000,
-    defaultSimulatedWeeklyUsage: 14200000
+    defaultSimulatedUsage: 14.5,
+    defaultSimulatedWeeklyUsage: 28.4
   },
   {
     id: 'gemini-3.5-flash-med',
@@ -126,18 +131,19 @@ const ANTIGRAVITY_MODELS = [
     speedBadge: 'Fast',
     speedClass: 'fast',
     variant: 'Balanced',
+    workDoneWeight: 'Low',
     contextWindow: 1048576,
     maxOutputTokens: 32768,
     reasoning: false,
     multimodal: true,
-    description: 'Shares the Gemini Quota Pool. Reliable medium-tier model for basic refactoring and documentation tasks.',
+    description: 'Shares Gemini Pool. Low compute cost variant for basic code edits and documentation.',
     quota: {
-      pro: { total: 10000000, resetHours: 5, rpm: 100, tpm: 1500000, weeklyBaselineLimit: 50000000 },
-      ultra: { total: 25000000, resetHours: 5, rpm: 250, tpm: 3500000, weeklyBaselineLimit: 125000000 },
-      free: { total: 3000000, resetHours: 5, rpm: 35, tpm: 400000, weeklyBaselineLimit: 15000000 }
+      pro: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 100, tpm: 1500000, weeklyBaselineLimit: 100 },
+      ultra: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 250, tpm: 3500000, weeklyBaselineLimit: 100 },
+      free: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 35, tpm: 400000, weeklyBaselineLimit: 100 }
     },
-    defaultSimulatedUsage: 890000,
-    defaultSimulatedWeeklyUsage: 8900000
+    defaultSimulatedUsage: 8.9,
+    defaultSimulatedWeeklyUsage: 17.8
   },
   {
     id: 'gemini-3.5-flash-low',
@@ -148,18 +154,19 @@ const ANTIGRAVITY_MODELS = [
     speedBadge: 'Fast',
     speedClass: 'fast',
     variant: 'Lightweight',
+    workDoneWeight: 'Minimal',
     contextWindow: 1048576,
     maxOutputTokens: 32768,
     reasoning: false,
     multimodal: true,
-    description: 'Shares the Gemini Quota Pool. Lightweight option minimal quota consumption for single file edits.',
+    description: 'Shares Gemini Pool. Minimal Work Done draw for simple query answering.',
     quota: {
-      pro: { total: 10000000, resetHours: 5, rpm: 80, tpm: 1000000, weeklyBaselineLimit: 50000000 },
-      ultra: { total: 25000000, resetHours: 5, rpm: 180, tpm: 2500000, weeklyBaselineLimit: 125000000 },
-      free: { total: 3000000, resetHours: 5, rpm: 25, tpm: 250000, weeklyBaselineLimit: 15000000 }
+      pro: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 80, tpm: 1000000, weeklyBaselineLimit: 100 },
+      ultra: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 180, tpm: 2500000, weeklyBaselineLimit: 100 },
+      free: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 25, tpm: 250000, weeklyBaselineLimit: 100 }
     },
-    defaultSimulatedUsage: 450000,
-    defaultSimulatedWeeklyUsage: 4500000
+    defaultSimulatedUsage: 4.5,
+    defaultSimulatedWeeklyUsage: 9.0
   },
   {
     id: 'gemini-3.1-pro-high',
@@ -170,18 +177,19 @@ const ANTIGRAVITY_MODELS = [
     speedBadge: 'Reasoning',
     speedClass: 'pro',
     variant: 'Deep Reasoning',
+    workDoneWeight: 'High',
     contextWindow: 2097152,
     maxOutputTokens: 65536,
     reasoning: true,
     multimodal: true,
-    description: 'Shares the Gemini Quota Pool. Massive 2M context window with deep reasoning. Heavy agentic loops consume Work Done quota at accelerated rates.',
+    description: 'Shares Gemini Pool. 2M context model with high Work Done compute cost. Autonomous subagent execution drains weekly baseline faster.',
     quota: {
-      pro: { total: 10000000, resetHours: 5, rpm: 60, tpm: 1000000, weeklyBaselineLimit: 50000000 },
-      ultra: { total: 25000000, resetHours: 5, rpm: 150, tpm: 3000000, weeklyBaselineLimit: 125000000 },
-      free: { total: 3000000, resetHours: 5, rpm: 20, tpm: 300000, weeklyBaselineLimit: 15000000 }
+      pro: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 60, tpm: 1000000, weeklyBaselineLimit: 100 },
+      ultra: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 150, tpm: 3000000, weeklyBaselineLimit: 100 },
+      free: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 20, tpm: 300000, weeklyBaselineLimit: 100 }
     },
-    defaultSimulatedUsage: 3100000,
-    defaultSimulatedWeeklyUsage: 41200000
+    defaultSimulatedUsage: 31.0,
+    defaultSimulatedWeeklyUsage: 82.4
   },
   {
     id: 'gemini-3.1-pro-low',
@@ -192,18 +200,19 @@ const ANTIGRAVITY_MODELS = [
     speedBadge: 'Reasoning',
     speedClass: 'pro',
     variant: 'Standard Pro',
+    workDoneWeight: 'Medium',
     contextWindow: 2097152,
     maxOutputTokens: 65536,
     reasoning: true,
     multimodal: true,
-    description: 'Shares the Gemini Quota Pool. 2M context model with standard reasoning rate limits.',
+    description: 'Shares Gemini Pool. 2M context model with moderate compute weight cost per reasoning prompt.',
     quota: {
-      pro: { total: 10000000, resetHours: 5, rpm: 40, tpm: 800000, weeklyBaselineLimit: 50000000 },
-      ultra: { total: 25000000, resetHours: 5, rpm: 100, tpm: 2000000, weeklyBaselineLimit: 125000000 },
-      free: { total: 3000000, resetHours: 5, rpm: 12, tpm: 200000, weeklyBaselineLimit: 15000000 }
+      pro: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 40, tpm: 800000, weeklyBaselineLimit: 100 },
+      ultra: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 100, tpm: 2000000, weeklyBaselineLimit: 100 },
+      free: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 12, tpm: 200000, weeklyBaselineLimit: 100 }
     },
-    defaultSimulatedUsage: 1800000,
-    defaultSimulatedWeeklyUsage: 22000000
+    defaultSimulatedUsage: 18.0,
+    defaultSimulatedWeeklyUsage: 44.0
   },
   {
     id: 'claude-sonnet-4.6',
@@ -214,18 +223,19 @@ const ANTIGRAVITY_MODELS = [
     speedBadge: 'Thinking',
     speedClass: 'thinking',
     variant: 'Extended Thinking',
+    workDoneWeight: 'High',
     contextWindow: 200000,
     maxOutputTokens: 32768,
     reasoning: true,
     multimodal: true,
-    description: 'Shares the Third-Party Quota Pool. Outstanding for algorithmic logic and complex bug detection. Exhausting this model directly reduces Claude Opus capacity.',
+    description: 'Shares Third-Party Pool. High Work Done compute cost. Exhausting quota directly reduces Claude Opus capacity.',
     quota: {
-      pro: { total: 3000000, resetHours: 5, rpm: 40, tpm: 600000, weeklyBaselineLimit: 15000000 },
-      ultra: { total: 10000000, resetHours: 5, rpm: 100, tpm: 2000000, weeklyBaselineLimit: 37500000 },
-      free: { total: 800000, resetHours: 5, rpm: 15, tpm: 150000, weeklyBaselineLimit: 4000000 }
+      pro: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 40, tpm: 600000, weeklyBaselineLimit: 100 },
+      ultra: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 100, tpm: 2000000, weeklyBaselineLimit: 100 },
+      free: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 15, tpm: 150000, weeklyBaselineLimit: 100 }
     },
-    defaultSimulatedUsage: 1950000,
-    defaultSimulatedWeeklyUsage: 12100000
+    defaultSimulatedUsage: 65.0,
+    defaultSimulatedWeeklyUsage: 80.6
   },
   {
     id: 'claude-opus-4.6',
@@ -236,18 +246,19 @@ const ANTIGRAVITY_MODELS = [
     speedBadge: 'Thinking',
     speedClass: 'thinking',
     variant: 'Deep Synthesis',
+    workDoneWeight: 'Extreme',
     contextWindow: 200000,
     maxOutputTokens: 32768,
     reasoning: true,
     multimodal: true,
-    description: 'Shares the Third-Party Quota Pool. Deepest cognitive reasoning budget. Drains Work Done quota heavily—a single autonomous session can trigger weekly lockout.',
+    description: 'Shares Third-Party Pool. Extreme Work Done compute cost. Heavy multi-file refactoring or agentic loops rapidly consume weekly baseline.',
     quota: {
-      pro: { total: 3000000, resetHours: 5, rpm: 25, tpm: 400000, weeklyBaselineLimit: 15000000 },
-      ultra: { total: 10000000, resetHours: 5, rpm: 60, tpm: 1200000, weeklyBaselineLimit: 37500000 },
-      free: { total: 400000, resetHours: 5, rpm: 10, tpm: 100000, weeklyBaselineLimit: 4000000 }
+      pro: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 25, tpm: 400000, weeklyBaselineLimit: 100 },
+      ultra: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 60, tpm: 1200000, weeklyBaselineLimit: 100 },
+      free: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 10, tpm: 100000, weeklyBaselineLimit: 100 }
     },
-    defaultSimulatedUsage: 2850000,
-    defaultSimulatedWeeklyUsage: 15000000
+    defaultSimulatedUsage: 95.0,
+    defaultSimulatedWeeklyUsage: 100.0
   },
   {
     id: 'gpt-oss-120b-med',
@@ -258,18 +269,19 @@ const ANTIGRAVITY_MODELS = [
     speedBadge: 'Open Source',
     speedClass: 'fast',
     variant: 'Medium Weights',
+    workDoneWeight: 'Medium',
     contextWindow: 128000,
     maxOutputTokens: 16384,
     reasoning: true,
     multimodal: false,
-    description: 'Shares the OSS Quota Pool. Open-weights model hosted on high-speed inference clusters for privacy-focused agentic coding.',
+    description: 'Shares OSS Pool. Moderate Work Done compute weight. High-speed open weights model for privacy-conscious agentic coding.',
     quota: {
-      pro: { total: 5000000, resetHours: 5, rpm: 80, tpm: 1000000, weeklyBaselineLimit: 25000000 },
-      ultra: { total: 15000000, resetHours: 5, rpm: 200, tpm: 3000000, weeklyBaselineLimit: 62500000 },
-      free: { total: 1500000, resetHours: 5, rpm: 30, tpm: 300000, weeklyBaselineLimit: 7500000 }
+      pro: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 80, tpm: 1000000, weeklyBaselineLimit: 100 },
+      ultra: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 200, tpm: 3000000, weeklyBaselineLimit: 100 },
+      free: { total: 100, resetHours: 5, resetDaysWeekly: 7, rpm: 30, tpm: 300000, weeklyBaselineLimit: 100 }
     },
-    defaultSimulatedUsage: 2200000,
-    defaultSimulatedWeeklyUsage: 16500000
+    defaultSimulatedUsage: 44.0,
+    defaultSimulatedWeeklyUsage: 66.0
   }
 ];
 

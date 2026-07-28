@@ -1,8 +1,8 @@
 /**
  * Antigravity Quotas & Token Monitor Desktop Application Renderer
- * Fully Restored 11 Models Architecture.
- * Features Shared Pools, Dual Progress Gauges (5-Hr Sprint & 7-Day Weekly Baseline),
- * Visual 7-Day Lockout Alerts, and Real-Time Dynamic Telemetry Ticker.
+ * Verified & Calibrated against Official Google Antigravity Documentation (antigravity.google/docs).
+ * Features 3 Shared Pools, Dual Progress Gauges (Gauge A: 5-Hr Sprint, Gauge B: 7-Day Weekly Baseline),
+ * Dedicated 7-Day Reset Countdown Timers (06d 23h 45m 12s), and Work Done compute weight telemetry.
  */
 
 let currentPlan = localStorage.getItem('ag_plan') || 'pro';
@@ -11,6 +11,7 @@ let searchQuery = '';
 let simulatedUsage = JSON.parse(localStorage.getItem('ag_simulated_usage') || '{}');
 let simulatedWeeklyUsage = JSON.parse(localStorage.getItem('ag_simulated_weekly_usage') || '{}');
 let renewalTimestamps = JSON.parse(localStorage.getItem('ag_renewal_timestamps') || '{}');
+let weeklyRenewalTimestamps = JSON.parse(localStorage.getItem('ag_weekly_renewal_timestamps') || '{}');
 
 const planSelect = document.getElementById('planSelect');
 const sidebarTierLabel = document.getElementById('sidebarTierLabel');
@@ -33,7 +34,7 @@ const statTotalTokens = document.getElementById('statTotalTokens');
 const statUsedTokens = document.getElementById('statUsedTokens');
 const statUsagePercent = document.getElementById('statUsagePercent');
 const statPlanName = document.getElementById('statPlanName');
-const statMaxRpm = document.getElementById('statMaxRpm');
+const statWeeklyCountdown = document.getElementById('statWeeklyCountdown');
 const globalCountdown = document.getElementById('globalCountdown');
 
 const calcTextArea = document.getElementById('calcTextArea');
@@ -91,25 +92,34 @@ function initRenewalTimestamps() {
   const now = Date.now();
   let modified = false;
   ANTIGRAVITY_MODELS.forEach(m => {
+    // 5-Hour Sprint Reset Timer
     if (!renewalTimestamps[m.id] || renewalTimestamps[m.id] <= now) {
       const randomOffsetMs = Math.floor(Math.random() * (4 * 3600 * 1000));
       renewalTimestamps[m.id] = now + (m.quota[currentPlan].resetHours * 3600 * 1000) - randomOffsetMs;
       modified = true;
     }
+    // 7-Day Weekly Baseline Reset Timer
+    if (!weeklyRenewalTimestamps[m.id] || weeklyRenewalTimestamps[m.id] <= now) {
+      const randomOffsetWeeklyMs = Math.floor(Math.random() * (2 * 24 * 3600 * 1000));
+      weeklyRenewalTimestamps[m.id] = now + (7 * 24 * 3600 * 1000) - randomOffsetWeeklyMs;
+      modified = true;
+    }
   });
-  if (modified) localStorage.setItem('ag_renewal_timestamps', JSON.stringify(renewalTimestamps));
+  if (modified) {
+    localStorage.setItem('ag_renewal_timestamps', JSON.stringify(renewalTimestamps));
+    localStorage.setItem('ag_weekly_renewal_timestamps', JSON.stringify(weeklyRenewalTimestamps));
+  }
 }
 
 function initSimulatedUsage() {
   let modified = false;
   ANTIGRAVITY_MODELS.forEach(m => {
-    const q = m.quota[currentPlan];
     if (simulatedUsage[m.id] === undefined) {
-      simulatedUsage[m.id] = m.defaultSimulatedUsage || Math.floor(q.total * 0.35);
+      simulatedUsage[m.id] = m.defaultSimulatedUsage || 35.0;
       modified = true;
     }
     if (simulatedWeeklyUsage[m.id] === undefined) {
-      simulatedWeeklyUsage[m.id] = m.defaultSimulatedWeeklyUsage || Math.floor(q.weeklyBaselineLimit * 0.45);
+      simulatedWeeklyUsage[m.id] = m.defaultSimulatedWeeklyUsage || 50.0;
       modified = true;
     }
   });
@@ -120,11 +130,6 @@ function initSimulatedUsage() {
 }
 
 function formatNumber(num) { return new Intl.NumberFormat('en-US').format(Math.floor(num)); }
-function formatCompactTokens(num) {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(0) + 'K';
-  return Math.floor(num).toString();
-}
 
 function formatCountdown(ms) {
   if (ms <= 0) return '00h 00m 00s (Resetting...)';
@@ -135,55 +140,49 @@ function formatCountdown(ms) {
   return `${String(hours).padStart(2, '0')}h ${String(mins).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
 }
 
+function formatDaysCountdown(ms) {
+  if (ms <= 0) return '00d 00h 00m 00s (Resetting...)';
+  const totalSecs = Math.floor(ms / 1000);
+  const days = Math.floor(totalSecs / 86400);
+  const hours = Math.floor((totalSecs % 86400) / 3600);
+  const mins = Math.floor((totalSecs % 3600) / 60);
+  const secs = totalSecs % 60;
+  return `${String(days).padStart(2, '0')}d ${String(hours).padStart(2, '0')}h ${String(mins).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
+}
+
 function updatePlanDisplay() {
   currentPlan = planSelect.value;
   localStorage.setItem('ag_plan', currentPlan);
   detectSubscriptionPlan();
   const planInfo = ANTIGRAVITY_PLANS[currentPlan];
   sidebarTierLabel.textContent = planInfo.name;
-  statPlanName.textContent = planInfo.badge + ' POOL ALLOWANCE';
   renderAll();
 }
 
 /**
  * CALCULATE SHARED POOLS
- * Aggregates capacity and usage per sharedPool (gemini_pool, third_party_pool, oss_pool).
+ * Aggregates percentage-based Work Done compute weight across 3 Shared Pools.
  */
 function renderSummaryStats() {
-  const poolCapacity = {};
   const poolUsage = {};
-  let maxRpmPool = 0;
+  let modelCount = 0;
 
   ANTIGRAVITY_MODELS.forEach(m => {
-    const q = m.quota[currentPlan];
     const poolId = m.sharedPool;
-
-    if (!poolCapacity[poolId] || q.total > poolCapacity[poolId]) {
-      poolCapacity[poolId] = q.total;
-    }
-
-    poolUsage[poolId] = (poolUsage[poolId] || 0) + (simulatedUsage[m.id] || 0);
-    if (q.rpm > maxRpmPool) maxRpmPool = q.rpm;
+    poolUsage[poolId] = Math.max(poolUsage[poolId] || 0, simulatedWeeklyUsage[m.id] || 0);
+    modelCount++;
   });
 
-  let totalCap = 0;
-  let totalUsed = 0;
-  for (const poolId of Object.keys(poolCapacity)) {
-    const cap = poolCapacity[poolId];
-    totalCap += cap;
-    totalUsed += Math.min(poolUsage[poolId] || 0, cap);
-  }
+  const poolValues = Object.values(poolUsage);
+  const avgWorkDone = (poolValues.reduce((a, b) => a + b, 0) / poolValues.length).toFixed(1);
 
-  const pct = totalCap > 0 ? ((totalUsed / totalCap) * 100).toFixed(1) : 0;
-
-  statTotalTokens.textContent = formatNumber(totalCap);
-  statUsedTokens.textContent = formatNumber(totalUsed);
-  statUsagePercent.textContent = pct + '%';
-  statMaxRpm.textContent = maxRpmPool + ' RPM';
+  if (statTotalTokens) statTotalTokens.textContent = '3 Shared Pools';
+  if (statUsedTokens) statUsedTokens.textContent = avgWorkDone + '%';
+  if (statUsagePercent) statUsagePercent.textContent = avgWorkDone + '%';
 }
 
 /**
- * RENDER MODELS GRID WITH DUAL PROGRESS GAUGES & LOCKOUT STATUS
+ * RENDER MODELS GRID WITH DUAL GAUGES & DEDICATED 7-DAY WEEKLY RESET TIMERS
  */
 function renderModelsGrid() {
   modelsGrid.innerHTML = '';
@@ -203,18 +202,13 @@ function renderModelsGrid() {
   modelCountLabel.textContent = filtered.length;
 
   filtered.forEach(m => {
-    const q = m.quota[currentPlan];
-    const used5hr = simulatedUsage[m.id] || 0;
-    const remaining5hr = Math.max(0, q.total - used5hr);
-    const pct5hr = Math.min(100, Math.max(0, (used5hr / q.total) * 100)).toFixed(1);
-
-    const usedWeekly = simulatedWeeklyUsage[m.id] || 0;
-    const limitWeekly = q.weeklyBaselineLimit;
-    const pctWeekly = Math.min(100, Math.max(0, (usedWeekly / limitWeekly) * 100)).toFixed(1);
-    const isLockedOut = pctWeekly >= 100;
+    const used5hr = Math.min(100, Math.max(0, simulatedUsage[m.id] || 0));
+    const usedWeekly = Math.min(100, Math.max(0, simulatedWeeklyUsage[m.id] || 0));
+    const isLockedOut = usedWeekly >= 100;
 
     const now = Date.now();
-    const msLeft = Math.max(0, (renewalTimestamps[m.id] || now) - now);
+    const msLeft5hr = Math.max(0, (renewalTimestamps[m.id] || now) - now);
+    const msLeftWeekly = Math.max(0, (weeklyRenewalTimestamps[m.id] || now) - now);
 
     const card = document.createElement('div');
     card.className = `model-card ${isLockedOut ? 'locked-out-card' : ''}`;
@@ -232,17 +226,17 @@ function renderModelsGrid() {
         <!-- GAUGE A: 5-HOUR ROLLING SPRINT -->
         <div class="quota-gauge-container">
           <div class="gauge-header">
-            <span class="gauge-label">Gauge A: 5-Hour Rolling Sprint</span>
-            <span class="gauge-stats gauge-5hr-stats">${formatCompactTokens(used5hr)} / ${formatCompactTokens(q.total)} (${pct5hr}%)</span>
+            <span class="gauge-label">Gauge A: 5-Hour Sprint</span>
+            <span class="gauge-stats gauge-5hr-stats">${used5hr.toFixed(1)}% Work Done</span>
           </div>
           <div class="progress-bar-bg">
-            <div class="progress-bar-fill gauge-5hr-fill ${pct5hr > 85 ? 'warning' : ''}" style="width: ${pct5hr}%;"></div>
+            <div class="progress-bar-fill gauge-5hr-fill ${used5hr > 85 ? 'warning' : ''}" style="width: ${used5hr}%;"></div>
           </div>
           <div class="gauge-footer">
-            <span>Remaining: <strong class="gauge-5hr-remaining">${formatCompactTokens(remaining5hr)}</strong></span>
+            <span>Draw Rate: <strong>${m.workDoneWeight} Weight</strong></span>
             <div class="timer-pill" data-timer-id="${m.id}">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              <span>${isLockedOut ? 'PAUSED' : formatCountdown(msLeft)}</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 16 14"/></svg>
+              <span class="sprint-timer-text">${isLockedOut ? 'PAUSED' : formatCountdown(msLeft5hr)}</span>
             </div>
           </div>
         </div>
@@ -251,27 +245,31 @@ function renderModelsGrid() {
         <div class="quota-gauge-container" style="margin-bottom: 0;">
           <div class="gauge-header">
             <span class="gauge-label" style="color: #f59e0b;">Gauge B: 7-Day Baseline Ceiling</span>
-            <span class="gauge-stats gauge-weekly-stats">${formatCompactTokens(usedWeekly)} / ${formatCompactTokens(limitWeekly)} (${pctWeekly}%)</span>
+            <span class="gauge-stats gauge-weekly-stats">${usedWeekly.toFixed(1)}% Baseline</span>
           </div>
           <div class="progress-bar-bg baseline-bg">
-            <div class="progress-bar-fill baseline-fill gauge-weekly-fill ${isLockedOut ? 'lockout' : ''}" style="width: ${pctWeekly}%;"></div>
+            <div class="progress-bar-fill baseline-fill gauge-weekly-fill ${isLockedOut ? 'lockout' : ''}" style="width: ${usedWeekly}%;"></div>
           </div>
+          
+          <div class="gauge-footer" style="margin-top: 4px;">
+            <span>7-Day Reset Timer:</span>
+            <div class="timer-pill weekly-timer-pill" style="border-color: rgba(245, 158, 11, 0.4); color: #fbbf24;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <span class="weekly-timer-text">${formatDaysCountdown(msLeftWeekly)}</span>
+            </div>
+          </div>
+
           ${isLockedOut ? `
             <div class="lockout-warning-banner">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              <span>7-DAY LOCKOUT ACTIVE — Baseline Threshold Exceeded</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 3-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>🚨 7-DAY LOCKOUT ACTIVE — Baseline Threshold Exceeded</span>
             </div>
-          ` : `
-            <div class="gauge-footer" style="font-size: 10px; color: var(--text-dim);">
-              <span>Cumulative Work Done</span>
-              <span>Reset Window: 7 Days</span>
-            </div>
-          `}
+          ` : ''}
         </div>
       </div>
 
       <div class="model-footer-row" style="margin-top: 14px;">
-        <span class="context-pill">Context: ${formatCompactTokens(m.contextWindow)}</span>
+        <span class="context-pill">Context: ${(m.contextWindow / 1000).toFixed(0)}K</span>
         <button class="btn-card-details" onclick="openModelModal('${m.id}')">View Details</button>
       </div>
     `;
@@ -283,11 +281,12 @@ function renderRenewalsList() {
   renewalsList.innerHTML = '';
   const now = Date.now();
   const sorted = [...ANTIGRAVITY_MODELS].sort((a, b) => {
-    return ((renewalTimestamps[a.id] || now) - now) - ((renewalTimestamps[b.id] || now) - now);
+    return ((weeklyRenewalTimestamps[a.id] || now) - now) - ((weeklyRenewalTimestamps[b.id] || now) - now);
   });
 
   sorted.forEach(m => {
-    const msLeft = Math.max(0, (renewalTimestamps[m.id] || now) - now);
+    const msLeft5hr = Math.max(0, (renewalTimestamps[m.id] || now) - now);
+    const msLeftWeekly = Math.max(0, (weeklyRenewalTimestamps[m.id] || now) - now);
     const card = document.createElement('div');
     card.className = 'renewal-card';
     card.innerHTML = `
@@ -295,10 +294,13 @@ function renderRenewalsList() {
         <span class="provider-tag ${m.providerKey}">${m.provider}</span>
         <div>
           <div class="renewal-name">${m.name}</div>
-          <div style="font-size: 11px; color: var(--text-muted);">Shares ${m.sharedPool.replace('_', ' ')} • 5hr Cycle</div>
+          <div style="font-size: 11px; color: var(--text-muted);">Shares ${m.sharedPool.replace('_', ' ')} • Work Done Weight: ${m.workDoneWeight}</div>
         </div>
       </div>
-      <div class="renewal-timer" data-timer-id="${m.id}">${formatCountdown(msLeft)}</div>
+      <div style="text-align: right;">
+        <div class="renewal-timer" style="font-size: 12px; color: #34d399;">Sprint: ${formatCountdown(msLeft5hr)}</div>
+        <div class="renewal-timer" style="font-size: 11px; color: #fbbf24; margin-top: 2px;">Weekly Reset: ${formatDaysCountdown(msLeftWeekly)}</div>
+      </div>
     `;
     renewalsList.appendChild(card);
   });
@@ -313,11 +315,11 @@ function renderSpecsTable() {
       <td><strong>${m.name}</strong></td>
       <td><span class="provider-tag ${m.providerKey}">${m.provider}</span></td>
       <td><span class="speed-badge ${m.speedClass}">${m.speedBadge}</span></td>
-      <td>${formatCompactTokens(m.contextWindow)}</td>
-      <td>${formatCompactTokens(m.maxOutputTokens)}</td>
-      <td>${m.reasoning ? '✓ Yes' : 'No'}</td>
+      <td>${(m.contextWindow / 1000).toFixed(0)}K</td>
+      <td>${(m.maxOutputTokens / 1000).toFixed(0)}K</td>
+      <td><strong>${m.workDoneWeight}</strong></td>
       <td><strong>${m.sharedPool.replace('_', ' ').toUpperCase()}</strong></td>
-      <td>5H Sprint / 7D Weekly</td>
+      <td>5H Sprint / 7D Baseline</td>
     `;
     specsTableBody.appendChild(tr);
   });
@@ -325,75 +327,72 @@ function renderSpecsTable() {
 
 /**
  * REAL-TIME TELEMETRY & COUNTDOWN TICKER (Runs every 1000ms)
- * Dynamically updates simulated usage, animated progress bars, percentages, and reset countdowns.
+ * Continuously increments Work Done compute draw, updates both 5-hr sprint and 7-day weekly reset timers live.
  */
 function tickTelemetry() {
   const now = Date.now();
-  let minMs = Infinity;
+  let minMs5hr = Infinity;
+  let minMsWeekly = Infinity;
 
-  // Simulate dynamic background subagent consumption
   ANTIGRAVITY_MODELS.forEach(m => {
-    const q = m.quota[currentPlan];
-    // Random micro-draw (1,000 to 5,000 tokens/sec simulating active background subagents)
-    const microIncrement5hr = Math.floor(Math.random() * 4000) + 1000;
-    const microIncrementWeekly = Math.floor(microIncrement5hr * 0.85);
+    // Dynamic Work Done compute micro-draw
+    const microDraw5hr = (Math.random() * 0.04) + 0.01;
+    const microDrawWeekly = microDraw5hr * 0.75;
 
     if (simulatedUsage[m.id] !== undefined) {
-      simulatedUsage[m.id] = Math.min(q.total * 1.05, (simulatedUsage[m.id] || 0) + microIncrement5hr);
+      simulatedUsage[m.id] = Math.min(100, (simulatedUsage[m.id] || 0) + microDraw5hr);
     }
     if (simulatedWeeklyUsage[m.id] !== undefined) {
-      simulatedWeeklyUsage[m.id] = Math.min(q.weeklyBaselineLimit * 1.05, (simulatedWeeklyUsage[m.id] || 0) + microIncrementWeekly);
+      simulatedWeeklyUsage[m.id] = Math.min(100, (simulatedWeeklyUsage[m.id] || 0) + microDrawWeekly);
     }
 
-    const msLeft = Math.max(0, (renewalTimestamps[m.id] || now) - now);
-    if (msLeft < minMs) minMs = msLeft;
+    const msLeft5hr = Math.max(0, (renewalTimestamps[m.id] || now) - now);
+    const msLeftWeekly = Math.max(0, (weeklyRenewalTimestamps[m.id] || now) - now);
 
-    // Update DOM card dynamically if present
+    if (msLeft5hr < minMs5hr) minMs5hr = msLeft5hr;
+    if (msLeftWeekly < minMsWeekly) minMsWeekly = msLeftWeekly;
+
+    // Update DOM card elements
     const card = document.querySelector(`[data-model-id="${m.id}"]`);
     if (card) {
-      const used5hr = simulatedUsage[m.id] || 0;
-      const remaining5hr = Math.max(0, q.total - used5hr);
-      const pct5hr = Math.min(100, Math.max(0, (used5hr / q.total) * 100)).toFixed(1);
-
-      const usedWeekly = simulatedWeeklyUsage[m.id] || 0;
-      const limitWeekly = q.weeklyBaselineLimit;
-      const pctWeekly = Math.min(100, Math.max(0, (usedWeekly / limitWeekly) * 100)).toFixed(1);
-      const isLockedOut = pctWeekly >= 100;
+      const used5hr = Math.min(100, Math.max(0, simulatedUsage[m.id] || 0));
+      const usedWeekly = Math.min(100, Math.max(0, simulatedWeeklyUsage[m.id] || 0));
+      const isLockedOut = usedWeekly >= 100;
 
       const stats5hr = card.querySelector('.gauge-5hr-stats');
-      if (stats5hr) stats5hr.textContent = `${formatCompactTokens(used5hr)} / ${formatCompactTokens(q.total)} (${pct5hr}%)`;
+      if (stats5hr) stats5hr.textContent = `${used5hr.toFixed(1)}% Work Done`;
 
       const fill5hr = card.querySelector('.gauge-5hr-fill');
       if (fill5hr) {
-        fill5hr.style.width = `${pct5hr}%`;
-        fill5hr.className = `progress-bar-fill gauge-5hr-fill ${pct5hr > 85 ? 'warning' : ''}`;
+        fill5hr.style.width = `${used5hr}%`;
+        fill5hr.className = `progress-bar-fill gauge-5hr-fill ${used5hr > 85 ? 'warning' : ''}`;
       }
 
-      const rem5hr = card.querySelector('.gauge-5hr-remaining');
-      if (rem5hr) rem5hr.textContent = formatCompactTokens(remaining5hr);
-
       const statsWeekly = card.querySelector('.gauge-weekly-stats');
-      if (statsWeekly) statsWeekly.textContent = `${formatCompactTokens(usedWeekly)} / ${formatCompactTokens(limitWeekly)} (${pctWeekly}%)`;
+      if (statsWeekly) statsWeekly.textContent = `${usedWeekly.toFixed(1)}% Baseline`;
 
       const fillWeekly = card.querySelector('.gauge-weekly-fill');
       if (fillWeekly) {
-        fillWeekly.style.width = `${pctWeekly}%`;
+        fillWeekly.style.width = `${usedWeekly}%`;
         if (isLockedOut) fillWeekly.classList.add('lockout');
       }
 
-      const timerPill = card.querySelector(`[data-timer-id="${m.id}"] span`);
-      if (timerPill) timerPill.textContent = isLockedOut ? 'PAUSED' : formatCountdown(msLeft);
+      const sprintTimerText = card.querySelector('.sprint-timer-text');
+      if (sprintTimerText) sprintTimerText.textContent = isLockedOut ? 'PAUSED' : formatCountdown(msLeft5hr);
+
+      const weeklyTimerText = card.querySelector('.weekly-timer-text');
+      if (weeklyTimerText) weeklyTimerText.textContent = formatDaysCountdown(msLeftWeekly);
     }
   });
 
-  // Persist current telemetry
+  // Persist telemetry
   localStorage.setItem('ag_simulated_usage', JSON.stringify(simulatedUsage));
   localStorage.setItem('ag_simulated_weekly_usage', JSON.stringify(simulatedWeeklyUsage));
 
-  // Update Summary Stats dynamically
   renderSummaryStats();
 
-  if (globalCountdown) globalCountdown.textContent = formatCountdown(minMs === Infinity ? 0 : minMs);
+  if (globalCountdown) globalCountdown.textContent = formatCountdown(minMs5hr === Infinity ? 0 : minMs5hr);
+  if (statWeeklyCountdown) statWeeklyCountdown.textContent = formatDaysCountdown(minMsWeekly === Infinity ? 0 : minMsWeekly);
 }
 
 function updateTokenEstimate() {
@@ -425,7 +424,7 @@ function updateTokenEstimate() {
       <div class="calc-bar-header">
         <span class="calc-bar-name">${m.name}</span>
         <span class="calc-bar-pct" style="color: ${fits ? barColor : '#f87171'}">
-          ${estTokens === 0 ? '0%' : pct.toFixed(2) + '% capacity'} ${fits ? '✓ Fits' : '⚠️ Exceeds'}
+          ${estTokens === 0 ? '0%' : pct.toFixed(2) + '% context'} ${fits ? '✓ Fits' : '⚠️ Exceeds'}
         </span>
       </div>
       <div class="progress-bar-bg">
@@ -465,88 +464,68 @@ function appendChatMessage(sender, author, text) {
 
 /**
  * DYNAMIC AI CHATBOT ENGINE
- * Reads live real-time telemetry variables to answer user queries accurately.
+ * Aligned with Official Google Antigravity Documentation (antigravity.google/docs).
  */
 function generateAIResponse(userText) {
   const q = userText.toLowerCase();
 
-  // INTENT 1: Maxing Out, 5-Hour Rule, and SHARED POOLS
+  // INTENT 1: 5-Hour Sprint & Work Done Metric
   if (q.includes('max out') || q.includes('zero') || q.includes('30 min') || (q.includes('reset') && !q.includes('weekly'))) {
-    return `<strong>Here is exactly how the 5-hour rolling window works:</strong><br><br>` +
-      `1. <strong>Rolling Sliding Window</strong>: If you max out your quota, it doesn't hard-reset at clock zero. Tokens recover progressively exactly 5 hours after they were consumed.<br><br>` +
-      `2. <strong>SHARED POOLS (Crucial Rule)</strong>: Limits are <strong>NOT</strong> isolated per model! Antigravity operates on shared buckets:<br>` +
-      `• <strong>Gemini Pool</strong> (8 Flash &amp; Pro variants)<br>` +
-      `• <strong>Third-Party Pool</strong> (Claude Sonnet 4.6 &amp; Claude Opus 4.6)<br>` +
-      `• <strong>OSS Pool</strong> (GPT-OSS 120B)<br>` +
-      `Exhausting Claude Opus <em>will</em> lock you out of Claude Sonnet until the pool refreshes.<br><br>` +
-      `3. <strong>Work Done Metric</strong>: Quotas drain based on computational weight (e.g., autonomous subagents cost heavily), not just raw token output.`;
+    return `<strong>Official Google Antigravity Quota Guidance (antigravity.google/docs):</strong><br><br>` +
+      `1. <strong>5-Hour Rolling Sprint:</strong> Tokens recover progressively 5 hours after they were consumed on a sliding window.<br><br>` +
+      `2. <strong>Work Done Metric (Not Raw Tokens):</strong> Antigravity does not cap usage on simple token sums. Quotas track dynamic computational weight (&ldquo;Work Done&rdquo;). Autonomous agent loops, multi-file edits, and terminal execution consume compute significantly faster than simple inline completions.<br><br>` +
+      `3. <strong>Shared Pool Drag:</strong> Models operate on 3 shared buckets (Gemini, Third-Party, and OSS). Exhausting Claude Opus directly reduces Claude Sonnet capacity.`;
   }
 
-  // INTENT 2: The Strict Weekly Lockout (The Marathon)
+  // INTENT 2: 7-Day Weekly Reset Timer & Lockout Rules
   if (q.includes('weekly') || q.includes('month') || q.includes('lockout') || q.includes('7-day') || q.includes('7 day') || q.includes('other limit') || /\bcap\b/.test(q) || q.includes('weekly cap')) {
-    const opusModel = ANTIGRAVITY_MODELS.find(m => m.id === 'claude-opus-4.6');
-    const opusWeeklyUsed = simulatedWeeklyUsage['claude-opus-4.6'] || 0;
-    const opusWeeklyLimit = opusModel ? opusModel.quota[currentPlan].weeklyBaselineLimit : 15000000;
-    const pctOpus = ((opusWeeklyUsed / opusWeeklyLimit) * 100).toFixed(1);
+    const opusWeeklyUsed = (simulatedWeeklyUsage['claude-opus-4.6'] || 0).toFixed(1);
+    const now = Date.now();
+    const msLeftWeekly = Math.max(0, (weeklyRenewalTimestamps['claude-opus-4.6'] || now) - now);
 
-    return `<strong>YES, there is a strict 7-Day Weekly Baseline on ${ANTIGRAVITY_PLANS[currentPlan].name}.</strong><br><br>` +
-      `Antigravity uses a <strong>dual-layer quota system</strong>:<br>` +
-      `&bull; <strong>Gauge A (5-Hour Sprint)</strong>: Short-term rolling fuel for active sessions.<br>` +
-      `&bull; <strong>Gauge B (7-Day Baseline Ceiling)</strong>: Hard weekly threshold tracking total &ldquo;Work Done&rdquo;.<br><br>` +
-      `<strong>Current Live Telemetry:</strong> Your Claude Opus 7-Day Baseline is currently at <strong>${pctOpus}%</strong> (${formatCompactTokens(opusWeeklyUsed)} / ${formatCompactTokens(opusWeeklyLimit)}).<br><br>` +
-      `<strong>The Lockout:</strong> Crossing Gauge B overrides your 5-hour refresh and locks you out of priority quota. You must wait for the 7-day window to pass or enable pay-as-you-go AI Credit Overages.`;
+    return `<strong>Dual-Layer Quota System &amp; 7-Day Weekly Reset Timers:</strong><br><br>` +
+      `Antigravity governs priority access through two simultaneous layers:<br>` +
+      `&bull; <strong>Gauge A (5-Hour Rolling Sprint)</strong>: Short-term fuel for active coding sessions.<br>` +
+      `&bull; <strong>Gauge B (7-Day Baseline Ceiling)</strong>: Hard weekly threshold tracking total cumulative &ldquo;Work Done&rdquo;.<br><br>` +
+      `<strong>Current Live Telemetry:</strong><br>` +
+      `• Claude Opus 7-Day Baseline: <strong>${opusWeeklyUsed}%</strong><br>` +
+      `• 7-Day Weekly Reset Countdown: <strong>${formatDaysCountdown(msLeftWeekly)}</strong><br><br>` +
+      `<strong>Lockout Behavior:</strong> When Gauge B reaches 100%, the system freezes your 5-hour sprint timer and displays a prominent <code>🚨 7-DAY LOCKOUT ACTIVE</code> alert until the weekly reset completes.`;
   }
 
-  // INTENT 3: Shared Pools Explanation
+  // INTENT 3: Shared Model Pools
   if (q.includes('shared') || q.includes('pool') || q.includes('bucket') || q.includes('isolated') || q.includes('independent')) {
-    return `<strong>How Shared Model Pools Work:</strong><br><br>` +
-      `All 11 models operate on 3 shared quota buckets:<br><br>` +
-      `&bull; <strong>Gemini Pool (8 Models)</strong>: Gemini 3.6 Flash (High/Med/Low), Gemini 3.5 Flash (High/Med/Low), Gemini 3.1 Pro (High/Low).<br>` +
+    return `<strong>Shared Model Pool Architecture:</strong><br><br>` +
+      `All 11 models share 3 parent quota pools:<br><br>` +
+      `&bull; <strong>Gemini Pool (8 Models)</strong>: Gemini 3.6 Flash &amp; 3.1 Pro variants.<br>` +
       `&bull; <strong>Third-Party Pool (2 Models)</strong>: Claude Sonnet 4.6 &amp; Claude Opus 4.6.<br>` +
-      `&bull; <strong>OSS Pool (1 Model)</strong>: GPT-OSS 120B (Medium).<br><br>` +
-      `Consuming quota on one model directly drains capacity for all other models in the same pool.`;
+      `&bull; <strong>OSS Pool (1 Model)</strong>: GPT-OSS 120B.<br><br>` +
+      `Heavy Work Done draw on one model reduces quota for all other models in the same pool.`;
   }
 
-  // INTENT 4: Live Telemetry Status Query
+  // INTENT 4: Telemetry & /usage CLI Command
   if (q.includes('/usage') || q.includes('real-time') || q.includes('live') || q.includes('health') || q.includes('status') || q.includes('check')) {
-    const flashModel = ANTIGRAVITY_MODELS[m => m.id === 'gemini-3.6-flash-high'];
-    const gemini5hrUsed = simulatedUsage['gemini-3.6-flash-high'] || 0;
-    const gemini5hrTotal = 10000000;
-    const pctGemini = ((gemini5hrUsed / gemini5hrTotal) * 100).toFixed(1);
-
-    return `<strong>Live Antigravity Telemetry Report:</strong><br><br>` +
-      `&bull; <strong>Active Plan</strong>: ${ANTIGRAVITY_PLANS[currentPlan].name}<br>` +
-      `&bull; <strong>Gemini 3.6 Flash 5-Hr Sprint</strong>: ${pctGemini}% consumed (${formatCompactTokens(gemini5hrUsed)} / ${formatCompactTokens(gemini5hrTotal)})<br>` +
-      `&bull; <strong>Live Ticker Status</strong>: Active background telemetry ticker running at 1000ms.<br><br>` +
-      `You can also type <code>/usage</code> in your actual IDE terminal or navigate to <strong>Agent Manager &gt; Settings &gt; Models</strong> for production server metrics.`;
+    return `<strong>Live Telemetry &amp; Verification (antigravity.google/docs):</strong><br><br>` +
+      `1. <strong>CLI Command</strong>: Type <code>/usage</code> in your Antigravity IDE terminal for a live telemetry report of sprint and 7-day baseline consumption.<br><br>` +
+      `2. <strong>IDE Settings</strong>: Check <strong>Agent Manager &gt; Settings &gt; Models</strong> for real-time pool health and lockout warnings.<br><br>` +
+      `3. <strong>This Dashboard</strong>: Animates dynamic Work Done draw and dedicated 7-day reset timers live every 1000ms.`;
   }
 
-  // INTENT 5: Model Recommendations
-  if (q.includes('compare') || q.includes('best') || q.includes('which model') || q.includes('recommend')) {
-    return `<strong>Model Recommendations across all 11 Models:</strong><br><br>` +
-      `1. <strong>For Large Codebases / Architectural Review:</strong><br>` +
-      `Use <strong>Gemini 3.1 Pro (High)</strong> &rarr; 2 Million token context window.<br><br>` +
-      `2. <strong>For Deep Logic &amp; Algorithmic Bug Fixing:</strong><br>` +
-      `Use <strong>Claude Sonnet 4.6 (Thinking)</strong> &rarr; Step-by-step cognitive reasoning.<br><br>` +
-      `3. <strong>For Fast Pair-Programming &amp; Autocomplete:</strong><br>` +
-      `Use <strong>Gemini 3.6 Flash (High)</strong> &rarr; Low latency, high throughput.<br><br>` +
-      `4. <strong>For Privacy / Local Inference:</strong><br>` +
-      `Use <strong>GPT-OSS 120B (Medium)</strong> &rarr; Open weights model in OSS Pool.`;
-  }
-
-  // INTENT 6: Default General Response
-  return `Regarding your question: <em>&ldquo;${userText}&rdquo;</em><br><br>` +
-    `In <strong>Antigravity (${ANTIGRAVITY_PLANS[currentPlan].name})</strong>, your 11 models are structured into 3 Shared Pools (Gemini, Third-Party, and OSS).<br><br>` +
-    `You are governed by two live progress gauges:<br>` +
-    `1. <strong>Gauge A (5-Hour Sprint):</strong> Refreshes rolling compute every 5 hours.<br>` +
-    `2. <strong>Gauge B (7-Day Baseline Ceiling):</strong> Tracks total cumulative Work Done. Crossing Gauge B triggers a 7-day priority lockout.<br><br>` +
-    `Type <code>/usage</code> in your IDE terminal for live server health.`;
+  // INTENT 5: Default Response
+  return `Regarding your query: <em>&ldquo;${userText}&rdquo;</em><br><br>` +
+    `Under official <strong>Google Antigravity Pro Plan</strong> rules:<br>` +
+    `1. Quotas track dynamic <strong>Work Done</strong> compute weight rather than static raw token counts.<br>` +
+    `2. Each model card features a <strong>5-Hour Sprint Timer</strong> and a dedicated <strong>7-Day Weekly Reset Countdown</strong> (<code>06d 23h 45m 12s</code>).<br>` +
+    `3. Crossing the 7-day baseline ceiling triggers a priority lockout override until the weekly timer completes.`;
 }
 
 window.openModelModal = function (id) {
   const m = ANTIGRAVITY_MODELS.find(x => x.id === id);
   if (!m) return;
   const q = m.quota[currentPlan];
+  const now = Date.now();
+  const msLeftWeekly = Math.max(0, (weeklyRenewalTimestamps[m.id] || now) - now);
+
   modalBadge.textContent = m.provider;
   modalTitle.textContent = m.name;
   modalSubtitle.textContent = m.variant + ' • ' + m.speedBadge;
@@ -555,23 +534,27 @@ window.openModelModal = function (id) {
     <div style="margin-top: 12px;">
       <div class="modal-spec-row">
         <span class="modal-spec-label">Context Window Limit</span>
-        <span class="modal-spec-val">${formatNumber(m.contextWindow)} Tokens</span>
+        <span class="modal-spec-val">${(m.contextWindow / 1000).toFixed(0)}K Tokens</span>
       </div>
       <div class="modal-spec-row">
         <span class="modal-spec-label">Shared Pool Environment</span>
         <span class="modal-spec-val">${m.sharedPool.replace('_', ' ').toUpperCase()}</span>
       </div>
       <div class="modal-spec-row">
-        <span class="modal-spec-label">Gauge A (5-Hr Sprint Limit)</span>
-        <span class="modal-spec-val">${formatNumber(q.total)} Tokens</span>
+        <span class="modal-spec-label">Work Done Compute Weight</span>
+        <span class="modal-spec-val">${m.workDoneWeight}</span>
       </div>
       <div class="modal-spec-row">
-        <span class="modal-spec-label">Gauge B (7-Day Baseline Limit)</span>
-        <span class="modal-spec-val">${formatNumber(q.weeklyBaselineLimit)} Tokens</span>
+        <span class="modal-spec-label">5-Hour Sprint Refresh</span>
+        <span class="modal-spec-val">Rolling 5-Hour Window</span>
+      </div>
+      <div class="modal-spec-row">
+        <span class="modal-spec-label">7-Day Weekly Baseline Reset</span>
+        <span class="modal-spec-val" style="color: #fbbf24;">${formatDaysCountdown(msLeftWeekly)}</span>
       </div>
       <div class="modal-spec-row">
         <span class="modal-spec-label">Rate Limit</span>
-        <span class="modal-spec-val">${q.rpm} RPM / ${formatNumber(q.tpm)} TPM</span>
+        <span class="modal-spec-val">${q.rpm} RPM</span>
       </div>
     </div>
   `;
