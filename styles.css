@@ -475,6 +475,101 @@ body {
 }
 
 /* --------------------------------------------------------------------------
+   OFFICIAL IDE SETTINGS MODEL QUOTA CARD (image_00a58d.png)
+   -------------------------------------------------------------------------- */
+.official-ide-quota-card {
+  background: rgba(15, 18, 26, 0.95);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 28px;
+}
+
+.ide-card-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 6px;
+}
+
+.ide-quota-intro {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 20px;
+  max-width: 95%;
+}
+
+.ide-groups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 20px;
+}
+
+.ide-group-box {
+  background: rgba(10, 13, 19, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  padding: 20px;
+}
+
+.ide-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 16px;
+}
+
+.ide-group-title svg {
+  color: var(--text-dim);
+}
+
+.ide-limit-item {
+  margin-bottom: 12px;
+}
+
+.ide-limit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.ide-limit-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.ide-limit-pct {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: #34d399;
+}
+
+.ide-limit-pct.text-danger {
+  color: #ef4444;
+}
+
+.ide-limit-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.ide-limit-desc.text-warning {
+  color: #fbbf24;
+}
+
+.mb-6 { margin-bottom: 24px; }
+.mt-3 { margin-top: 14px; }
+
+/* --------------------------------------------------------------------------
    PANELS & DASHBOARD STATS
    -------------------------------------------------------------------------- */
 .view-panel {

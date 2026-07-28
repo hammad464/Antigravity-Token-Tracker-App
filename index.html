@@ -136,57 +136,82 @@
           <div class="sub-banner-badge" id="bannerPlanBadge">ACTIVE PRO</div>
         </div>
 
-        <!-- Summary Cards Grid -->
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-icon purple">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            </div>
-            <div class="stat-details">
-              <span class="stat-label">Active Shared Pools</span>
-              <span class="stat-value" id="statTotalTokens">3 Shared Pools</span>
-              <span class="stat-sub" id="statPlanName">Gemini • Third-Party • OSS</span>
-            </div>
+        <!-- OFFICIAL IDE SETTINGS MODEL QUOTA CONTAINER (image_00a58d.png) -->
+        <div class="official-ide-quota-card mb-6">
+          <div class="ide-card-header">
+            <h3>Model Quota</h3>
+            <p class="ide-quota-intro">
+              Within each group, models share a weekly limit and a 5-hour limit. Quota is consumed proportionally to the cost of the tokens. Thus, limits will last longer with shorter tasks or using more cost-effective models. The 5-hour limit smooths out aggregate demand to fairly distribute global capacity across all users, while your weekly limit is tied directly to your individual tier.
+            </p>
           </div>
 
-          <div class="stat-card">
-            <div class="stat-icon blue">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-            </div>
-            <div class="stat-details">
-              <span class="stat-label">Aggregated Work Done</span>
-              <span class="stat-value" id="statUsedTokens">38.5%</span>
-              <span class="stat-sub"><span id="statUsagePercent">38.5%</span> Work Done compute draw</span>
-            </div>
-          </div>
+          <div class="ide-groups-grid">
+            <!-- Group 1: Gemini Models -->
+            <div class="ide-group-box">
+              <div class="ide-group-title">
+                <span>Gemini Models</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              </div>
 
-          <div class="stat-card">
-            <div class="stat-icon green">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            </div>
-            <div class="stat-details">
-              <span class="stat-label">Sprint Reset Window</span>
-              <span class="stat-value countdown-glow" id="globalCountdown">03h 41m 20s</span>
-              <span class="stat-sub">5-Hour Rolling Sprint Timer</span>
-            </div>
-          </div>
+              <div class="ide-limit-item">
+                <div class="ide-limit-header">
+                  <span class="ide-limit-name">Weekly Limit</span>
+                  <span class="ide-limit-pct" id="geminiWeeklyPct">68%</span>
+                </div>
+                <div class="ide-limit-desc" id="geminiWeeklyDesc">You have used some of your weekly limit, it will fully refresh in 4 hours, 57 minutes.</div>
+                <div class="progress-bar-bg">
+                  <div class="progress-bar-fill" id="geminiWeeklyBar" style="width: 68%; background: #10b981;"></div>
+                </div>
+              </div>
 
-          <div class="stat-card">
-            <div class="stat-icon orange">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              <div class="ide-limit-item mt-3">
+                <div class="ide-limit-header">
+                  <span class="ide-limit-name">Five Hour Limit</span>
+                  <span class="ide-limit-pct" id="gemini5hrPct">82%</span>
+                </div>
+                <div class="ide-limit-desc" id="gemini5hrDesc">You have used some of your 5-hour limit, it will fully refresh in 1 hour, 18 minutes.</div>
+                <div class="progress-bar-bg">
+                  <div class="progress-bar-fill" id="gemini5hrBar" style="width: 82%; background: #10b981;"></div>
+                </div>
+              </div>
             </div>
-            <div class="stat-details">
-              <span class="stat-label">Weekly Reset Timer</span>
-              <span class="stat-value" id="statWeeklyCountdown" style="font-size: 16px; color: #f59e0b;">06d 18h 42m 10s</span>
-              <span class="stat-sub">7-Day Weekly Baseline Reset</span>
+
+            <!-- Group 2: Claude and GPT models -->
+            <div class="ide-group-box">
+              <div class="ide-group-title">
+                <span>Claude and GPT models</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              </div>
+
+              <div class="ide-limit-item">
+                <div class="ide-limit-header">
+                  <span class="ide-limit-name">Weekly Limit</span>
+                  <span class="ide-limit-pct" id="claudeWeeklyPct">58%</span>
+                </div>
+                <div class="ide-limit-desc" id="claudeWeeklyDesc">You have hit your 5-hour limit, so the weekly limit does not currently apply. Your 5-hour limit will refresh in 1 hour, 18 minutes.</div>
+                <div class="progress-bar-bg">
+                  <div class="progress-bar-fill" id="claudeWeeklyBar" style="width: 58%; background: #10b981;"></div>
+                </div>
+              </div>
+
+              <div class="ide-limit-item mt-3">
+                <div class="ide-limit-header">
+                  <span class="ide-limit-name">Five Hour Limit</span>
+                  <span class="ide-limit-pct text-danger" id="claude5hrPct">0%</span>
+                </div>
+                <div class="ide-limit-desc text-warning" id="claude5hrDesc">You have hit your 5-hour limit, it will refresh in 1 hour, 18 minutes. If on a supported paid plan, you can use AI credits in the interim.</div>
+                <div class="progress-bar-bg">
+                  <div class="progress-bar-fill" id="claude5hrBar" style="width: 0%; background: #ef4444;"></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Section Title -->
         <div class="section-header">
-          <h2>Available Subscription Models (<span id="modelCountLabel">11</span>)</h2>
-          <span class="section-subtitle">Real-time token availability, context boundaries, and rolling renewal timers</span>
+          <h2>All Subscription Models (<span id="modelCountLabel">11</span>)</h2>
+          <span class="section-subtitle">Individual model capabilities, shared group assignments, and rate limits</span>
         </div>
 
         <!-- Models Grid Container -->
